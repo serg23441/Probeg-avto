@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Автопарк: Учет путевых листов и ГСМ (Облако)</title>
+  <style>
+    :root {
+      --bg: #0b1329;
+      --card-bg: #1e293b;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --fuel: #f59e0b;
+      --money: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --positive: #4ade80;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 16px 8px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .header-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    h1 { font-size: 1.25rem; font-weight: 700; }
+    h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 12px; color: #cbd5e1; }
+
+    .sync-status {
+      font-size: 0.75rem;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .status-online { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
+    .status-saving { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+    .status-error { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+    input[type="month"], select {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      color-scheme: dark;
+    }
+
+    .actions-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      background: #0b1120;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn:hover { background: #1e293b; border-color: var(--accent); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+    .selector-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+      background: #131d31;
+      padding: 12px;
+      border-radius: 8px;
+      align-items: center;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field-group label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .field-group input {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      color: var(--text);
+      font-size: 0.88rem;
+      outline: none;
+    }
+
+    .field-group input:focus, select:focus { border-color: var(--accent); }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .summary-label { font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; }
+    .summary-value { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .summary-value.fuel { color: var(--fuel); }
+    .summary-value.money { color: var(--money); }
+
+    .table-wrapper { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.84rem;
+    }
+
+    th {
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 6px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    td {
+      padding: 6px;
+      border-bottom: 1px solid #253347;
+      vertical-align: middle;
+    }
+
+    .fleet-table th { background: #162032; }
+    .fleet-table tr:hover { background: #162238; }
+    .fleet-total-row { font-weight: 700; background: #141e33; border-top: 2px solid var(--accent); }
+
+    tr.prev-month-row {
+      background-color: rgba(59, 130, 246, 0.08);
+      border-bottom: 2px solid var(--border);
+    }
+
+    tr.weekend { background-color: rgba(239, 68, 68, 0.04); }
+
+    .day-cell { white-space: nowrap; font-weight: 500; }
+    .day-weekday { font-size: 0.75rem; color: var(--text-muted); margin-left: 3px; }
+    .prev-tag {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--accent);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+    .weekend .day-weekday { color: #f87171; }
+
+    input.grid-input {
+      background: #0b1120;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 8px;
+      color: var(--text);
+      font-size: 0.84rem;
+      outline: none;
+      width: 100%;
+    }
+
+    input.grid-input:focus { border-color: var(--accent); background: #0f1a30; }
+    input.fuel-input:focus { border-color: var(--fuel); }
+
+    .delta-badge { font-weight: 600; color: var(--positive); white-space: nowrap; }
+    .delta-empty { color: var(--text-muted); }
+
+    @media print {
+      body { background: #fff !important; color: #000 !important; padding: 0; }
+      .container { max-width: 100%; gap: 0; }
+      .card { border: none !important; box-shadow: none !important; padding: 4px 0 !important; background: #fff !important; color: #000 !important; }
+      .header-bar, .actions-bar, .fleet-summary-card, #driverSelect, .prev-tag { display: none !important; }
+      .profile-grid input, input[type="number"], input[type="text"] { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
+      table { border: 1px solid #000; font-size: 10pt; }
+      th, td { border: 1px solid #000 !important; color: #000 !important; padding: 4px !important; }
+      .summary-grid { border: 1px solid #000; margin-bottom: 12px; padding: 8px; }
+      .summary-value { color: #000 !important; }
+      .print-title { display: block !important; margin-bottom: 8px; font-size: 14pt; }
+    }
+
+    .print-title { display: none; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="card fleet-summary-card">
+      <div class="header-bar">
+        <div>
+          <h1>Сводка автопарка (10 водителей)</h1>
+          <span id="syncIndicator" class="sync-status status-saving">Подключение к облаку...</span>
+        </div>
+        <div class="actions-bar">
+          <input type="month" id="monthSelector">
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="fleet-table">
+          <thead>
+            <tr>
+              <th>№</th>
+              <th>Водитель</th>
+              <th>Автомобиль</th>
+              <th>Госномер</th>
+              <th>Пробег</th>
+              <th>Топливо</th>
+              <th>Затраты (₽)</th>
+              <th>Ср. расход</th>
+            </tr>
+          </thead>
+          <tbody id="fleetSummaryBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h1 class="print-title">Путевой лист / Отчет по пробегу и ГСМ</h1>
+      <div class="header-bar">
+        <h2>Индивидуальный табель водителя</h2>
+        <div class="actions-bar">
+          <button class="btn" onclick="exportToCSV()">Скачать Excel (CSV)</button>
+          <button class="btn btn-primary" onclick="window.print()">Печать табеля</button>
+        </div>
+      </div>
+
+      <div class="selector-grid">
+        <div class="field-group">
+          <label for="driverSelect">Водитель из базы</label>
+          <select id="driverSelect"></select>
+        </div>
+        <div class="field-group">
+          <label for="fuelPrice">Цена топлива (₽ / литр)</label>
+          <input type="number" id="fuelPrice" step="0.1" min="0" placeholder="62.50">
+        </div>
+      </div>
+
+      <div class="profile-grid">
+        <div class="field-group">
+          <label for="driverName">ФИО водителя</label>
+          <input type="text" id="driverName">
+        </div>
+        <div class="field-group">
+          <label for="carModel">Автомобиль</label>
+          <input type="text" id="carModel">
+        </div>
+        <div class="field-group">
+          <label for="carPlate">Госномер</label>
+          <input type="text" id="carPlate">
+        </div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">Пробег за месяц</span>
+          <span class="summary-value" id="monthTotal">0 км</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Всего топлива</span>
+          <span class="summary-value fuel" id="totalFuel">0 л</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Сумма расходов</span>
+          <span class="summary-value money" id="totalCost">0 ₽</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Ср. расход на 100 км</span>
+          <span class="summary-value fuel" id="avgConsumption">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Входящий одометр</span>
+          <span class="summary-value" id="startOdo">—</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Итоговый одометр</span>
+          <span class="summary-value" id="endOdo">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 105px;">Дата</th>
+              <th style="width: 130px;">Одометр (км)</th>
+              <th style="width: 100px;">Пробег</th>
+              <th style="width: 95px;">Заправка (л)</th>
+              <th style="width: 100px;">Сумма (₽)</th>
+              <th>Маршрут / Заметка</th>
+            </tr>
+          </thead>
+          <tbody id="daysBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // ВСТАВЬТЕ СЮДА ВАШ URL ИЗ FIREBASE:
+    const FIREBASE_DB_URL = "https://gidravlika-default-rtdb.firebaseio.com/";
+    // ==========================================
+
+    const TOTAL_DRIVERS = 10;
+    const weekdaysRu = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+    const monthSelector = document.getElementById('monthSelector');
+    const driverSelect = document.getElementById('driverSelect');
+    const fleetSummaryBody = document.getElementById('fleetSummaryBody');
+    const syncIndicator = document.getElementById('syncIndicator');
+
+    const driverNameInput = document.getElementById('driverName');
+    const carModelInput = document.getElementById('carModel');
+    const carPlateInput = document.getElementById('carPlate');
+    const fuelPriceInput = document.getElementById('fuelPrice');
+
+    const daysBody = document.getElementById('daysBody');
+    const monthTotalEl = document.getElementById('monthTotal');
+    const totalFuelEl = document.getElementById('totalFuel');
+    const totalCostEl = document.getElementById('totalCost');
+    const avgConsumptionEl = document.getElementById('avgConsumption');
+    const startOdoEl = document.getElementById('startOdo');
+    const endOdoEl = document.getElementById('endOdo');
+
+    let globalCloudData = {
+      drivers: [],
+      logs: {}
+    };
+
+    let saveTimeout = null;
+
+    const now = new Date();
+    monthSelector.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    function setStatus(text, type) {
+      syncIndicator.textContent = text;
+      syncIndicator.className = `sync-status status-${type}`;
+    }
+
+    // Загрузка данных из облачной базы через REST API
+    async function loadAllDataFromCloud() {
+      if (!FIREBASE_DB_URL || FIREBASE_DB_URL.includes("ваш-проект")) {
+        setStatus("⚠️ Укажите URL базы в коде", "error");
+        return;
+      }
+
+      try {
+        setStatus("Синхронизация...", "saving");
+        const res = await fetch(`${FIREBASE_DB_URL.replace(/\/$/, '')}/fleet.json`);
+        const data = await res.json();
+
+        if (data && data.drivers) {
+          globalCloudData = data;
+        } else {
+          // Если база чистая — заполняем начальными водителями
+          initDefaultDrivers();
+          await syncToCloud();
+        }
+
+        populateDriverSelect();
+        loadActiveDriverProfile();
+        renderFleetSummary();
+        renderMonthRows();
+        setStatus("● Онлайн (синхронизировано)", "online");
+      } catch (err) {
+        console.error(err);
+        setStatus("Ошибка подключения к облаку", "error");
+      }
+    }
+
+    // Сохранение всего состояния в Firebase
+    async function syncToCloud() {
+      if (!FIREBASE_DB_URL || FIREBASE_DB_URL.includes("ваш-проект")) return;
+
+      setStatus("Сохранение в облако...", "saving");
+      try {
+        await fetch(`${FIREBASE_DB_URL.replace(/\/$/, '')}/fleet.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(globalCloudData)
+        });
+        setStatus("● Онлайн (все изменения сохранены)", "online");
+      } catch (err) {
+        console.error(err);
+        setStatus("Ошибка отправки в облако", "error");
+      }
+    }
+
+    function triggerAutoSave() {
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        syncToCloud();
+      }, 500); // Сохраняем через полсекунды после окончания ввода
+    }
+
+    function initDefaultDrivers() {
+      const demoCars = ['ГАЗель Next', 'Lada Largus', 'Ford Transit', 'КамАЗ 5490', 'Skoda Octavia', 'Renault Master', 'УАЗ Профи', 'Volkswagen Caddy', 'Hyundai HD78', 'Lada Vesta'];
+      globalCloudData.drivers = [];
+      for (let i = 1; i <= TOTAL_DRIVERS; i++) {
+        globalCloudData.drivers.push({
+          id: i,
+          name: `Водитель ${i}`,
+          car: demoCars[i - 1] || 'Автомобиль',
+          plate: `А 00${i} АА 43`,
+          fuelPrice: 62.00
+        });
+      }
+      globalCloudData.logs = globalCloudData.logs || {};
+    }
+
+    function populateDriverSelect() {
+      const currentVal = driverSelect.value || '1';
+      driverSelect.innerHTML = '';
+      (globalCloudData.drivers || []).forEach(d => {
+        const opt = document.createElement('option');
+        opt.value = d.id;
+        opt.textContent = `${d.id}. ${d.name} (${d.plate})`;
+        driverSelect.appendChild(opt);
+      });
+      driverSelect.value = currentVal;
+    }
+
+    function getMonthLog(driverId, monthStr) {
+      if (!globalCloudData.logs) globalCloudData.logs = {};
+      const key = `d${driverId}_${monthStr}`;
+      if (!globalCloudData.logs[key]) globalCloudData.logs[key] = {};
+      return globalCloudData.logs[key];
+    }
+
+    function getPrevMonthInfo(year, month) {
+      const prevDate = new Date(year, month - 1, 0);
+      const pYear = prevDate.getFullYear();
+      const pMonth = prevDate.getMonth() + 1;
+      const pTotalDays = prevDate.getDate();
+      return {
+        monthKey: `${pYear}-${String(pMonth).padStart(2, '0')}`,
+        dayKey: String(pTotalDays).padStart(2, '0'),
+        displayDate: `${String(pTotalDays).padStart(2, '0')}.${String(pMonth).padStart(2, '0')}`,
+        weekday: weekdaysRu[prevDate.getDay()]
+      };
+    }
+
+    function calculateDriverMonthStats(driverId, monthStr) {
+      const [year, month] = monthStr.split('-').map(Number);
+      const totalDays = new Date(year, month, 0).getDate();
+      const currentData = getMonthLog(driverId, monthStr);
+      
+      const prev = getPrevMonthInfo(year, month);
+      const prevData = getMonthLog(driverId, prev.monthKey);
+      const prevVal = prevData[prev.dayKey]?.odo ? parseInt(prevData[prev.dayKey].odo, 10) : null;
+
+      const driver = globalCloudData.drivers.find(d => d.id === driverId);
+      const price = driver?.fuelPrice || 0;
+
+      let prevOdo = prevVal;
+      let totalMileage = 0;
+      let totalFuel = 0;
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dayKey = String(day).padStart(2, '0');
+        const entry = currentData[dayKey];
+
+        if (entry) {
+          if (entry.odo !== '' && entry.odo !== undefined && !isNaN(entry.odo)) {
+            const currentOdo = parseInt(entry.odo, 10);
+            if (prevOdo !== null) {
+              const diff = currentOdo - prevOdo;
+              if (diff > 0) totalMileage += diff;
+            }
+            prevOdo = currentOdo;
+          }
+          if (entry.fuel !== '' && entry.fuel !== undefined && !isNaN(entry.fuel)) {
+            const f = parseFloat(entry.fuel);
+            if (f > 0) totalFuel += f;
+          }
+        }
+      }
+
+      const totalCost = totalFuel * price;
+      const consumption = totalMileage > 0 && totalFuel > 0 ? (totalFuel / totalMileage) * 100 : null;
+      return { totalMileage, totalFuel, totalCost, consumption };
+    }
+
+    function renderFleetSummary() {
+      const monthStr = monthSelector.value;
+      fleetSummaryBody.innerHTML = '';
+
+      let fleetMileage = 0;
+      let fleetFuel = 0;
+      let fleetCost = 0;
+
+      (globalCloudData.drivers || []).forEach(d => {
+        const stats = calculateDriverMonthStats(d.id, monthStr);
+        fleetMileage += stats.totalMileage;
+        fleetFuel += stats.totalFuel;
+        fleetCost += stats.totalCost;
+
+        const tr = document.createElement('tr');
+        tr.style.cursor = 'pointer';
+        tr.onclick = () => {
+          driverSelect.value = d.id;
+          handleDriverChange();
+        };
+
+        tr.innerHTML = `
+          <td><strong>#${d.id}</strong></td>
+          <td>${d.name}</td>
+          <td>${d.car}</td>
+          <td>${d.plate}</td>
+          <td><strong>${stats.totalMileage.toLocaleString('ru-RU')} км</strong></td>
+          <td style="color: var(--fuel);">${stats.totalFuel.toFixed(1)} л</td>
+          <td style="color: var(--money); font-weight:600;">${Math.round(stats.totalCost).toLocaleString('ru-RU')} ₽</td>
+          <td>${stats.consumption !== null ? `${stats.consumption.toFixed(1)} л` : '—'}</td>
+        `;
+        fleetSummaryBody.appendChild(tr);
+      });
+
+      const fleetAvg = fleetMileage > 0 && fleetFuel > 0 ? (fleetFuel / fleetMileage) * 100 : null;
+      const totalTr = document.createElement('tr');
+      totalTr.className = 'fleet-total-row';
+      totalTr.innerHTML = `
+        <td colspan="4">ИТОГО ПО АВТОПАРКУ:</td>
+        <td>${fleetMileage.toLocaleString('ru-RU')} км</td>
+        <td style="color: var(--fuel);">${fleetFuel.toFixed(1)} л</td>
+        <td style="color: var(--money);">${Math.round(fleetCost).toLocaleString('ru-RU')} ₽</td>
+        <td>${fleetAvg !== null ? `${fleetAvg.toFixed(1)} л` : '—'}</td>
+      `;
+      fleetSummaryBody.appendChild(totalTr);
+    }
+
+    function loadActiveDriverProfile() {
+      const dId = parseInt(driverSelect.value, 10);
+      const driver = (globalCloudData.drivers || []).find(d => d.id === dId);
+      if (driver) {
+        driverNameInput.value = driver.name;
+        carModelInput.value = driver.car;
+        carPlateInput.value = driver.plate;
+        fuelPriceInput.value = driver.fuelPrice || '';
+      }
+    }
+
+    function saveActiveDriverProfile() {
+      const dId = parseInt(driverSelect.value, 10);
+      const idx = globalCloudData.drivers.findIndex(d => d.id === dId);
+      if (idx !== -1) {
+        globalCloudData.drivers[idx].name = driverNameInput.value.trim();
+        globalCloudData.drivers[idx].car = carModelInput.value.trim();
+        globalCloudData.drivers[idx].plate = carPlateInput.value.trim();
+        globalCloudData.drivers[idx].fuelPrice = parseFloat(fuelPriceInput.value) || 0;
+        
+        populateDriverSelect();
+        renderFleetSummary();
+        triggerAutoSave();
+      }
+    }
+
+    [driverNameInput, carModelInput, carPlateInput, fuelPriceInput].forEach(input => {
+      input.addEventListener('change', saveActiveDriverProfile);
+    });
+
+    function renderMonthRows() {
+      const dId = driverSelect.value;
+      const [year, month] = monthSelector.value.split('-').map(Number);
+      const totalDays = new Date(year, month, 0).getDate();
+      const currentMonthData = getMonthLog(dId, monthSelector.value);
+
+      const prev = getPrevMonthInfo(year, month);
+      const prevMonthData = getMonthLog(dId, prev.monthKey);
+      const prevEntry = prevMonthData[prev.dayKey] || { odo: '', fuel: '', note: '' };
+
+      daysBody.innerHTML = '';
+
+      // Базовая строка пред. месяца
+      const prevTr = document.createElement('tr');
+      prevTr.className = 'prev-month-row';
+      prevTr.innerHTML = `
+        <td class="day-cell">
+          <span class="prev-tag">Пред. месяц</span>
+          ${prev.displayDate}
+          <span class="day-weekday">${prev.weekday}</span>
+        </td>
+        <td>
+          <input 
+            type="number" 
+            class="grid-input odo-input" 
+            data-driver="${dId}"
+            data-month="${prev.monthKey}"
+            data-day="${prev.dayKey}" 
+            data-is-prev="true"
+            placeholder="Остаток..." 
+            value="${prevEntry.odo || ''}"
+          >
+        </td>
+        <td id="delta-prev"><span class="delta-empty">База</span></td>
+        <td>
+          <input 
+            type="number" 
+            step="0.1" 
+            min="0" 
+            class="grid-input fuel-input" 
+            data-driver="${dId}"
+            data-month="${prev.monthKey}"
+            data-day="${prev.dayKey}" 
+            data-is-prev="true"
+            placeholder="0.0" 
+            value="${prevEntry.fuel || ''}"
+          >
+        </td>
+        <td id="cost-prev"><span class="delta-empty">—</span></td>
+        <td>
+          <input 
+            type="text" 
+            class="grid-input note-input" 
+            data-driver="${dId}"
+            data-month="${prev.monthKey}"
+            data-day="${prev.dayKey}" 
+            data-is-prev="true"
+            placeholder="Входящий остаток..." 
+            value="${prevEntry.note || ''}"
+          >
+        </td>
+      `;
+      daysBody.appendChild(prevTr);
+
+      // Дни текущего месяца
+      for (let day = 1; day <= totalDays; day++) {
+        const dateObj = new Date(year, month - 1, day);
+        const dayOfWeek = dateObj.getDay();
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        const dayKey = String(day).padStart(2, '0');
+        const entry = currentMonthData[dayKey] || { odo: '', fuel: '', note: '' };
+
+        const tr = document.createElement('tr');
+        if (isWeekend) tr.classList.add('weekend');
+
+        tr.innerHTML = `
+          <td class="day-cell">
+            ${dayKey}.${String(month).padStart(2, '0')}
+            <span class="day-weekday">${weekdaysRu[dayOfWeek]}</span>
+          </td>
+          <td>
+            <input 
+              type="number" 
+              class="grid-input odo-input" 
+              data-driver="${dId}"
+              data-month="${monthSelector.value}"
+              data-day="${dayKey}" 
+              placeholder="0" 
+              value="${entry.odo || ''}"
+            >
+          </td>
+          <td id="delta-${dayKey}">
+            <span class="delta-empty">—</span>
+          </td>
+          <td>
+            <input 
+              type="number" 
+              step="0.1" 
+              min="0" 
+              class="grid-input fuel-input" 
+              data-driver="${dId}"
+              data-month="${monthSelector.value}"
+              data-day="${dayKey}" 
+              placeholder="0.0" 
+              value="${entry.fuel || ''}"
+            >
+          </td>
+          <td id="cost-${dayKey}" style="color: var(--money); font-weight: 500;">
+            <span class="delta-empty">—</span>
+          </td>
+          <td>
+            <input 
+              type="text" 
+              class="grid-input note-input" 
+              data-driver="${dId}"
+              data-month="${monthSelector.value}"
+              data-day="${dayKey}" 
+              placeholder="Маршрут, АЗС..." 
+              value="${entry.note || ''}"
+            >
+          </td>
+        `;
+
+        daysBody.appendChild(tr);
+      }
+
+      attachGridListeners();
+      recalculateStats();
+    }
+
+    function attachGridListeners() {
+      document.querySelectorAll('.odo-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const dId = e.target.dataset.driver;
+          const mKey = e.target.dataset.month;
+          const day = e.target.dataset.day;
+          const data = getMonthLog(dId, mKey);
+          if (!data[day]) data[day] = {};
+          data[day].odo = e.target.value.trim();
+          recalculateStats();
+          renderFleetSummary();
+          triggerAutoSave();
+        });
+      });
+
+      document.querySelectorAll('.fuel-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const dId = e.target.dataset.driver;
+          const mKey = e.target.dataset.month;
+          const day = e.target.dataset.day;
+          const data = getMonthLog(dId, mKey);
+          if (!data[day]) data[day] = {};
+          data[day].fuel = e.target.value.trim();
+          recalculateStats();
+          renderFleetSummary();
+          triggerAutoSave();
+        });
+      });
+
+      document.querySelectorAll('.note-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const dId = e.target.dataset.driver;
+          const mKey = e.target.dataset.month;
+          const day = e.target.dataset.day;
+          const data = getMonthLog(dId, mKey);
+          if (!data[day]) data[day] = {};
+          data[day].note = e.target.value;
+          triggerAutoSave();
+        });
+      });
+    }
+
+    function recalculateStats() {
+      const odoInputs = document.querySelectorAll('.odo-input');
+      const fuelInputs = document.querySelectorAll('.fuel-input');
+      const price = parseFloat(fuelPriceInput.value) || 0;
+
+      let prevOdo = null;
+      let startOdoVal = null;
+      let lastCurrentMonthOdo = null;
+      let currentMonthMileage = 0;
+      let currentMonthFuel = 0;
+
+      odoInputs.forEach((input) => {
+        const isPrev = input.dataset.isPrev === 'true';
+        const day = input.dataset.day;
+        const rawVal = input.value.trim();
+        const deltaCell = isPrev ? document.getElementById('delta-prev') : document.getElementById(`delta-${day}`);
+
+        if (rawVal !== '') {
+          const currentOdo = parseInt(rawVal, 10);
+
+          if (isPrev) {
+            startOdoVal = currentOdo;
+          } else {
+            if (startOdoVal === null) startOdoVal = currentOdo;
+            lastCurrentMonthOdo = currentOdo;
+          }
+
+          if (prevOdo !== null) {
+            const diff = currentOdo - prevOdo;
+            if (!isPrev) {
+              if (diff >= 0) {
+                currentMonthMileage += diff;
+                deltaCell.innerHTML = `<span class="delta-badge">+${diff.toLocaleString('ru-RU')} км</span>`;
+              } else {
+                deltaCell.innerHTML = `<span style="color: #ef4444; font-weight:600;">${diff} км</span>`;
+              }
+            }
+          } else {
+            if (!isPrev) deltaCell.innerHTML = `<span class="delta-empty">—</span>`;
+          }
+
+          prevOdo = currentOdo;
+        } else {
+          if (!isPrev) deltaCell.innerHTML = `<span class="delta-empty">—</span>`;
+        }
+      });
+
+      fuelInputs.forEach(input => {
+        if (input.dataset.isPrev === 'true') return;
+        const day = input.dataset.day;
+        const val = parseFloat(input.value.trim());
+        const costCell = document.getElementById(`cost-${day}`);
+
+        if (!isNaN(val) && val > 0) {
+          currentMonthFuel += val;
+          if (price > 0) {
+            costCell.textContent = `${Math.round(val * price).toLocaleString('ru-RU')} ₽`;
+          } else {
+            costCell.innerHTML = `<span class="delta-empty">—</span>`;
+          }
+        } else {
+          costCell.innerHTML = `<span class="delta-empty">—</span>`;
+        }
+      });
+
+      const totalCost = currentMonthFuel * price;
+      monthTotalEl.textContent = `${currentMonthMileage.toLocaleString('ru-RU')} км`;
+      totalFuelEl.textContent = `${currentMonthFuel.toFixed(1)} л`;
+      totalCostEl.textContent = `${Math.round(totalCost).toLocaleString('ru-RU')} ₽`;
+      startOdoEl.textContent = startOdoVal !== null ? `${startOdoVal.toLocaleString('ru-RU')} км` : '—';
+      endOdoEl.textContent = lastCurrentMonthOdo !== null ? `${lastCurrentMonthOdo.toLocaleString('ru-RU')} км` : '—';
+
+      if (currentMonthMileage > 0 && currentMonthFuel > 0) {
+        const consumption = (currentMonthFuel / currentMonthMileage) * 100;
+        avgConsumptionEl.textContent = `${consumption.toFixed(1)} л`;
+      } else {
+        avgConsumptionEl.textContent = '—';
+      }
+    }
+
+    function exportToCSV() {
+      const dId = driverSelect.value;
+      const driver = (globalCloudData.drivers || []).find(d => d.id === parseInt(dId, 10));
+      const [year, month] = monthSelector.value.split('-').map(Number);
+      const totalDays = new Date(year, month, 0).getDate();
+      const monthData = getMonthLog(dId, monthSelector.value);
+      const price = parseFloat(fuelPriceInput.value) || 0;
+
+      let csv = '\uFEFF';
+      csv += `Путевой лист и отчет ГСМ за ${monthSelector.value}\n`;
+      csv += `Водитель:;${driver?.name || ''}\n`;
+      csv += `Автомобиль:;${driver?.car || ''}\n`;
+      csv += `Госномер:;${driver?.plate || ''}\n`;
+      csv += `Цена топлива:;${price} руб./л\n\n`;
+
+      csv += 'Дата;День недели;Одометр (км);Пробег (км);Заправка (л);Сумма (руб);Маршрут / Заметка\n';
+
+      const prev = getPrevMonthInfo(year, month);
+      const prevData = getMonthLog(dId, prev.monthKey);
+      let prevOdo = prevData[prev.dayKey]?.odo ? parseInt(prevData[prev.dayKey].odo, 10) : null;
+
+      csv += `${prev.displayDate};${prev.weekday} (Пред. месяц);${prevOdo || ''};База;${prevData[prev.dayKey]?.fuel || ''};;${prevData[prev.dayKey]?.note || ''}\n`;
+
+      for (let day = 1; day <= totalDays; day++) {
+        const dateObj = new Date(year, month - 1, day);
+        const dayKey = String(day).padStart(2, '0');
+        const entry = monthData[dayKey] || {};
+        const odo = entry.odo ? parseInt(entry.odo, 10) : '';
+        const fuel = entry.fuel ? parseFloat(entry.fuel) : 0;
+        const note = entry.note ? entry.note.replace(/;/g, ',') : '';
+
+        let delta = '';
+        if (odo !== '' && !isNaN(odo)) {
+          if (prevOdo !== null) delta = odo - prevOdo;
+          prevOdo = odo;
+        }
+
+        const cost = fuel > 0 && price > 0 ? (fuel * price).toFixed(2) : '';
+        csv += `${dayKey}.${String(month).padStart(2, '0')};${weekdaysRu[dateObj.getDay()]};${odo};${delta};${fuel || ''};${cost};${note}\n`;
+      }
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Putevoy_list_${driver?.name || 'driver'}_${monthSelector.value}.csv`;
+      link.click();
+    }
+
+    function handleDriverChange() {
+      loadActiveDriverProfile();
+      renderMonthRows();
+    }
+
+    driverSelect.addEventListener('change', handleDriverChange);
+    monthSelector.addEventListener('change', () => {
+      renderFleetSummary();
+      renderMonthRows();
+    });
+
+    // Автообновление каждые 30 секунд (чтобы диспетчер видел новые данные водителей без перезагрузки)
+    setInterval(() => {
+      loadAllDataFromCloud();
+    }, 30000);
+
+    loadAllDataFromCloud();
+  </script>
+</body>
+</html>
