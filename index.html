@@ -169,7 +169,86 @@
     .summary-value.fuel { color: var(--fuel); }
     .summary-value.money { color: var(--money); }
 
-    .table-wrapper { overflow-x: auto; }
+    /* Interactive Line Chart Styles */
+    .chart-wrapper {
+      position: relative;
+      background: #111a2e;
+      border: 1px solid #233249;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 20px;
+    }
+    
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      font-size: 0.82rem;
+    }
+    
+    .chart-title {
+      font-weight: 600;
+      color: #cbd5e1;
+    }
+    
+    .chart-legend {
+      display: flex;
+      gap: 14px;
+      font-size: 0.76rem;
+      color: var(--text-muted);
+    }
+    
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .legend-line {
+      width: 14px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--fuel);
+    }
+
+    .chart-canvas-box {
+      position: relative;
+      width: 100%;
+      height: 200px;
+      cursor: crosshair;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .chart-tooltip {
+      position: absolute;
+      display: none;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      line-height: 1.4;
+      pointer-events: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.5);
+      z-index: 10;
+      white-space: nowrap;
+      transition: top 0.1s ease, left 0.1s ease;
+    }
+
+    .table-wrapper { overflow-x: auto; margin-top: 16px; }
 
     table {
       width: 100%;
@@ -235,7 +314,7 @@
       body { background: #fff !important; color: #000 !important; padding: 0; }
       .container { max-width: 100%; gap: 0; }
       .card { border: none !important; box-shadow: none !important; padding: 4px 0 !important; background: #fff !important; color: #000 !important; }
-      .header-bar, .actions-bar, .fleet-summary-card, #driverSelect, .prev-tag { display: none !important; }
+      .header-bar, .actions-bar, .fleet-summary-card, #driverSelect, .prev-tag, .chart-wrapper { display: none !important; }
       .profile-grid input, input[type="number"], input[type="text"] { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
       table { border: 1px solid #000; font-size: 10pt; }
       th, td { border: 1px solid #000 !important; color: #000 !important; padding: 4px !important; }
@@ -342,6 +421,21 @@
           <span class="summary-value" id="endOdo">—</span>
         </div>
       </div>
+
+      <!-- График динамики (кривая) -->
+      <div class="chart-wrapper">
+        <div class="chart-header">
+          <span class="chart-title" id="chartDriverTitle">График активности по дням</span>
+          <div class="chart-legend">
+            <span class="legend-item"><span class="legend-line"></span> Пробег (км)</span>
+            <span class="legend-item"><span class="legend-dot"></span> Заправка (л)</span>
+          </div>
+        </div>
+        <div class="chart-canvas-box" id="chartBox">
+          <canvas id="driverLineChart"></canvas>
+          <div class="chart-tooltip" id="chartTooltip"></div>
+        </div>
+      </div>
     </div>
 
     <div class="card">
@@ -390,12 +484,18 @@
     const startOdoEl = document.getElementById('startOdo');
     const endOdoEl = document.getElementById('endOdo');
 
+    // Элементы графика
+    const chartBox = document.getElementById('chartBox');
+    const canvas = document.getElementById('driverLineChart');
+    const chartTooltip = document.getElementById('chartTooltip');
+
     let globalCloudData = {
       drivers: [],
       logs: {}
     };
 
     let saveTimeout = null;
+    let cachedChartData = []; // Для хранения координат точек графика
 
     const now = new Date();
     monthSelector.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -405,7 +505,7 @@
       syncIndicator.className = `sync-status status-${type}`;
     }
 
-    // Загрузка данных из облачной базы через REST API
+    // Загрузка данных из облачной базы
     async function loadAllDataFromCloud() {
       if (!FIREBASE_DB_URL || FIREBASE_DB_URL.includes("ваш-проект")) {
         setStatus("⚠️ Укажите URL базы в коде", "error");
@@ -420,7 +520,6 @@
         if (data && data.drivers) {
           globalCloudData = data;
         } else {
-          // Если база чистая — заполняем начальными водителями
           initDefaultDrivers();
           await syncToCloud();
         }
@@ -458,7 +557,7 @@
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(() => {
         syncToCloud();
-      }, 500); // Сохраняем через полсекунды после окончания ввода
+      }, 500); 
     }
 
     function initDefaultDrivers() {
@@ -604,6 +703,7 @@
         carModelInput.value = driver.car;
         carPlateInput.value = driver.plate;
         fuelPriceInput.value = driver.fuelPrice || '';
+        document.getElementById('chartDriverTitle').textContent = `Динамика: ${driver.name} (${driver.plate})`;
       }
     }
 
@@ -638,7 +738,6 @@
 
       daysBody.innerHTML = '';
 
-      // Базовая строка пред. месяца
       const prevTr = document.createElement('tr');
       prevTr.className = 'prev-month-row';
       prevTr.innerHTML = `
@@ -648,49 +747,19 @@
           <span class="day-weekday">${prev.weekday}</span>
         </td>
         <td>
-          <input 
-            type="number" 
-            class="grid-input odo-input" 
-            data-driver="${dId}"
-            data-month="${prev.monthKey}"
-            data-day="${prev.dayKey}" 
-            data-is-prev="true"
-            placeholder="Остаток..." 
-            value="${prevEntry.odo || ''}"
-          >
+          <input type="number" class="grid-input odo-input" data-driver="${dId}" data-month="${prev.monthKey}" data-day="${prev.dayKey}" data-is-prev="true" placeholder="Остаток..." value="${prevEntry.odo || ''}">
         </td>
         <td id="delta-prev"><span class="delta-empty">База</span></td>
         <td>
-          <input 
-            type="number" 
-            step="0.1" 
-            min="0" 
-            class="grid-input fuel-input" 
-            data-driver="${dId}"
-            data-month="${prev.monthKey}"
-            data-day="${prev.dayKey}" 
-            data-is-prev="true"
-            placeholder="0.0" 
-            value="${prevEntry.fuel || ''}"
-          >
+          <input type="number" step="0.1" min="0" class="grid-input fuel-input" data-driver="${dId}" data-month="${prev.monthKey}" data-day="${prev.dayKey}" data-is-prev="true" placeholder="0.0" value="${prevEntry.fuel || ''}">
         </td>
         <td id="cost-prev"><span class="delta-empty">—</span></td>
         <td>
-          <input 
-            type="text" 
-            class="grid-input note-input" 
-            data-driver="${dId}"
-            data-month="${prev.monthKey}"
-            data-day="${prev.dayKey}" 
-            data-is-prev="true"
-            placeholder="Входящий остаток..." 
-            value="${prevEntry.note || ''}"
-          >
+          <input type="text" class="grid-input note-input" data-driver="${dId}" data-month="${prev.monthKey}" data-day="${prev.dayKey}" data-is-prev="true" placeholder="Входящий остаток..." value="${prevEntry.note || ''}">
         </td>
       `;
       daysBody.appendChild(prevTr);
 
-      // Дни текущего месяца
       for (let day = 1; day <= totalDays; day++) {
         const dateObj = new Date(year, month - 1, day);
         const dayOfWeek = dateObj.getDay();
@@ -708,48 +777,17 @@
             <span class="day-weekday">${weekdaysRu[dayOfWeek]}</span>
           </td>
           <td>
-            <input 
-              type="number" 
-              class="grid-input odo-input" 
-              data-driver="${dId}"
-              data-month="${monthSelector.value}"
-              data-day="${dayKey}" 
-              placeholder="0" 
-              value="${entry.odo || ''}"
-            >
+            <input type="number" class="grid-input odo-input" data-driver="${dId}" data-month="${monthSelector.value}" data-day="${dayKey}" placeholder="0" value="${entry.odo || ''}">
           </td>
-          <td id="delta-${dayKey}">
-            <span class="delta-empty">—</span>
-          </td>
+          <td id="delta-${dayKey}"><span class="delta-empty">—</span></td>
           <td>
-            <input 
-              type="number" 
-              step="0.1" 
-              min="0" 
-              class="grid-input fuel-input" 
-              data-driver="${dId}"
-              data-month="${monthSelector.value}"
-              data-day="${dayKey}" 
-              placeholder="0.0" 
-              value="${entry.fuel || ''}"
-            >
+            <input type="number" step="0.1" min="0" class="grid-input fuel-input" data-driver="${dId}" data-month="${monthSelector.value}" data-day="${dayKey}" placeholder="0.0" value="${entry.fuel || ''}">
           </td>
-          <td id="cost-${dayKey}" style="color: var(--money); font-weight: 500;">
-            <span class="delta-empty">—</span>
-          </td>
+          <td id="cost-${dayKey}" style="color: var(--money); font-weight: 500;"><span class="delta-empty">—</span></td>
           <td>
-            <input 
-              type="text" 
-              class="grid-input note-input" 
-              data-driver="${dId}"
-              data-month="${monthSelector.value}"
-              data-day="${dayKey}" 
-              placeholder="Маршрут, АЗС..." 
-              value="${entry.note || ''}"
-            >
+            <input type="text" class="grid-input note-input" data-driver="${dId}" data-month="${monthSelector.value}" data-day="${dayKey}" placeholder="Маршрут, АЗС..." value="${entry.note || ''}">
           </td>
         `;
-
         daysBody.appendChild(tr);
       }
 
@@ -794,6 +832,7 @@
           const data = getMonthLog(dId, mKey);
           if (!data[day]) data[day] = {};
           data[day].note = e.target.value;
+          recalculateStats();
           triggerAutoSave();
         });
       });
@@ -802,6 +841,7 @@
     function recalculateStats() {
       const odoInputs = document.querySelectorAll('.odo-input');
       const fuelInputs = document.querySelectorAll('.fuel-input');
+      const noteInputs = document.querySelectorAll('.note-input');
       const price = parseFloat(fuelPriceInput.value) || 0;
 
       let prevOdo = null;
@@ -810,12 +850,15 @@
       let currentMonthMileage = 0;
       let currentMonthFuel = 0;
 
-      odoInputs.forEach((input) => {
+      const chartItems = []; // Сбор данных для графика
+
+      odoInputs.forEach((input, index) => {
         const isPrev = input.dataset.isPrev === 'true';
         const day = input.dataset.day;
         const rawVal = input.value.trim();
         const deltaCell = isPrev ? document.getElementById('delta-prev') : document.getElementById(`delta-${day}`);
 
+        let dayDelta = 0;
         if (rawVal !== '') {
           const currentOdo = parseInt(rawVal, 10);
 
@@ -831,6 +874,7 @@
             if (!isPrev) {
               if (diff >= 0) {
                 currentMonthMileage += diff;
+                dayDelta = diff;
                 deltaCell.innerHTML = `<span class="delta-badge">+${diff.toLocaleString('ru-RU')} км</span>`;
               } else {
                 deltaCell.innerHTML = `<span style="color: #ef4444; font-weight:600;">${diff} км</span>`;
@@ -843,6 +887,21 @@
           prevOdo = currentOdo;
         } else {
           if (!isPrev) deltaCell.innerHTML = `<span class="delta-empty">—</span>`;
+        }
+
+        if (!isPrev) {
+            const fuelInput = fuelInputs[index];
+            const noteInput = noteInputs[index];
+            const fuelVal = fuelInput ? parseFloat(fuelInput.value.trim()) || 0 : 0;
+            const noteVal = noteInput ? noteInput.value.trim() : '';
+
+            chartItems.push({
+                day: parseInt(day, 10),
+                mileage: dayDelta,
+                fuel: fuelVal,
+                note: noteVal,
+                odo: rawVal !== '' ? parseInt(rawVal, 10) : null
+            });
         }
       });
 
@@ -877,6 +936,180 @@
       } else {
         avgConsumptionEl.textContent = '—';
       }
+
+      drawLineChart(chartItems);
+    }
+
+    // Отрисовка графика (Кривая)
+    function drawLineChart(items, activeIndex = -1) {
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = chartBox.getBoundingClientRect();
+
+      canvas.width = rect.width * dpr;
+      canvas.height = 200 * dpr;
+      ctx.scale(dpr, dpr);
+
+      const width = rect.width;
+      const height = 200;
+      const padLeft = 35;
+      const padRight = 15;
+      const padTop = 20;
+      const padBottom = 25;
+      const plotW = width - padLeft - padRight;
+      const plotH = height - padTop - padBottom;
+
+      ctx.clearRect(0, 0, width, height);
+      if (!items || items.length === 0) return;
+
+      const maxMileage = Math.max(...items.map(i => i.mileage), 50);
+      const stepX = plotW / (items.length - 1);
+
+      // Рисуем сетку
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+
+      const gridLines = 4;
+      for (let g = 0; g <= gridLines; g++) {
+        const val = Math.round((maxMileage / gridLines) * g);
+        const y = padTop + plotH - (plotH / gridLines) * g;
+        
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y);
+        ctx.lineTo(width - padRight, y);
+        ctx.stroke();
+        ctx.fillText(`${val}`, padLeft - 6, y + 4);
+      }
+
+      cachedChartData = [];
+      const points = items.map((item, i) => {
+        return {
+          x: padLeft + i * stepX,
+          y: padTop + plotH - (maxMileage > 0 ? (item.mileage / maxMileage) * plotH : 0),
+          ...item,
+          idx: i
+        };
+      });
+
+      // Линия пробега
+      ctx.beginPath();
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      
+      points.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+
+      // Заливка под графиком
+      ctx.lineTo(points[points.length-1].x, padTop + plotH);
+      ctx.lineTo(points[0].x, padTop + plotH);
+      ctx.closePath();
+      
+      const gradient = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+      gradient.addColorStop(0, 'rgba(59, 130, 246, 0.25)');
+      gradient.addColorStop(1, 'rgba(59, 130, 246, 0.0)');
+      ctx.fillStyle = gradient;
+      ctx.fill();
+
+      // Отрисовка точек и логика Hover
+      points.forEach(p => {
+        const isHovered = (p.idx === activeIndex);
+
+        // Точка графика (всегда видна, если навели - становится ярче)
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, isHovered ? 5 : 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = isHovered ? '#60a5fa' : '#1e293b';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#3b82f6';
+        ctx.stroke();
+
+        // Точка заправки (если есть)
+        if (p.fuel > 0) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y - 18, isHovered ? 6 : 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = isHovered ? '#fbbf24' : '#f59e0b';
+          ctx.fill();
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = '#0f172a';
+          ctx.stroke();
+        }
+
+        // Метки оси X (Дни)
+        if (p.day % 3 === 0 || p.day === 1 || p.day === points.length) {
+          ctx.fillStyle = isHovered ? '#f8fafc' : '#94a3b8';
+          ctx.font = isHovered ? 'bold 10px sans-serif' : '10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(p.day, p.x, height - 6);
+        }
+
+        // Кэшируем для тултипа
+        cachedChartData.push({ ...p, hitboxL: p.x - stepX/2, hitboxR: p.x + stepX/2 });
+      });
+
+      // Линия-указатель при наведении
+      if (activeIndex !== -1 && points[activeIndex]) {
+        const pt = points[activeIndex];
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 1;
+        ctx.moveTo(pt.x, padTop);
+        ctx.lineTo(pt.x, padTop + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Взаимодействие с графиком
+    chartBox.addEventListener('mousemove', (e) => {
+      const rect = chartBox.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      
+      const hovered = cachedChartData.find(d => mouseX >= d.hitboxL && mouseX < d.hitboxR);
+
+      if (hovered) {
+        drawLineChart(cachedChartData, hovered.idx);
+
+        let noteHtml = hovered.note ? `<div style="color:#cbd5e1; font-style:italic; margin-top:4px; padding-top:4px; border-top:1px solid #334155;">«${hovered.note}»</div>` : '';
+        let fuelHtml = hovered.fuel > 0 ? `<div style="color:var(--fuel); font-weight:600;">Заправка: +${hovered.fuel} л</div>` : '';
+        let odoHtml = hovered.odo ? `<div style="color:var(--text-muted); font-size:0.75rem;">Одометр: ${hovered.odo.toLocaleString('ru-RU')} км</div>` : '';
+
+        chartTooltip.innerHTML = `
+          <strong style="color: #f8fafc; font-size: 0.85rem;">${hovered.day} число</strong>
+          <div style="color: var(--accent); font-weight:600; font-size: 0.95rem;">Пробег: +${hovered.mileage} км</div>
+          ${fuelHtml}
+          ${odoHtml}
+          ${noteHtml}
+        `;
+
+        chartTooltip.style.display = 'block';
+
+        let tipLeft = hovered.x + 15;
+        if (tipLeft + 180 > rect.width) {
+          tipLeft = hovered.x - chartTooltip.offsetWidth - 15;
+        }
+
+        chartTooltip.style.left = `${tipLeft}px`;
+        chartTooltip.style.top = `${Math.max(10, hovered.y - 40)}px`;
+      } else {
+        hideTooltip();
+      }
+    });
+
+    chartBox.addEventListener('mouseleave', hideTooltip);
+
+    function hideTooltip() {
+      chartTooltip.style.display = 'none';
+      if(cachedChartData.length > 0) drawLineChart(cachedChartData, -1);
     }
 
     function exportToCSV() {
@@ -936,6 +1169,11 @@
     monthSelector.addEventListener('change', () => {
       renderFleetSummary();
       renderMonthRows();
+    });
+    
+    // Перерисовка графика при изменении размера окна
+    window.addEventListener('resize', () => {
+      recalculateStats();
     });
 
     // Автообновление каждые 30 секунд (чтобы диспетчер видел новые данные водителей без перезагрузки)
