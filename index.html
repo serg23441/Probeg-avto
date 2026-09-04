@@ -354,7 +354,7 @@
 
       refreshUI();
 
-      // Затем пытаемся стянуть свежее из сети
+      // Затем стягиваем свежее из сети
       if (!FIREBASE_DB_URL.includes("ваш-проект")) {
         try {
           setStatus("Обновление...", "saving");
@@ -362,14 +362,19 @@
           if (res.ok) {
             const data = await res.json();
             if (data && data.drivers) {
-              if ((data.updatedAt || 0) >= (Store.updatedAt || 0)) {
-                Store = data;          // облако новее (или одинаково) — берём облако
-                saveLocally();
-                refreshUI();
+              
+              // ИСПРАВЛЕНИЕ: Всегда принимаем облако как ЕДИНЫЙ центр правды
+              Store = data; 
+              saveLocally();
+              refreshUI();
+
+              // Если в момент скачивания у нас были не отправленные правки — досылаем их
+              if (Object.keys(pendingWrites).length > 0) {
+                syncToCloud(); 
               } else {
-                syncToCloud();         // локальные правки новее — выгружаем их, не затирая
+                setStatus("● Онлайн", "online");
               }
-              setStatus("● Онлайн", "online");
+              
             } else {
               syncToCloud(); // База пуста, пушим локалку
             }
@@ -384,6 +389,7 @@
     function markDirty(path, value) {
       pendingWrites[path] = value; // null = удаление ветки
       Store.updatedAt = Date.now();
+      pendingWrites['updatedAt'] = Store.updatedAt; // ИСПРАВЛЕНИЕ: Теперь время отправляется в базу
       saveLocally();
     }
 
