@@ -964,27 +964,42 @@
     window.addEventListener('resize', () => drawLineChart(cachedChartData));
     setInterval(loadData, 60000); // Фоновая синхронизация раз в минуту
 
-    // === УСТАНОВКА PWA (ПК и Android) ===
+    // === УСТАНОВКА PWA (ПК, Android, iOS) ===
     let deferredInstallPrompt = null;
     const installBtn = document.getElementById('installBtn');
+
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();                     // не показываем авто-prompt, ждём клика по кнопке
+      e.preventDefault();
       deferredInstallPrompt = e;
       installBtn.style.display = 'inline-flex';
     });
+
     installBtn.addEventListener('click', async () => {
-      if (!deferredInstallPrompt) return;
+      if (!deferredInstallPrompt) {
+        // Fallback: если beforeinstallprompt не пришёл (уже установлено или не поддерживается)
+        alert('Установка через меню браузера:\nChrome/Edge → ⋮ → «Установить приложение»\nSafari → Поделиться → «На экран Домой»');
+        return;
+      }
       deferredInstallPrompt.prompt();
       const { outcome } = await deferredInstallPrompt.userChoice;
       if (outcome === 'accepted') installBtn.style.display = 'none';
       deferredInstallPrompt = null;
     });
+
     window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
 
-    // iOS/Safari: beforeinstallprompt не срабатывает — показываем подсказку один раз
+    // Если через 3 секунды beforeinstallprompt не пришёл — показываем кнопку как fallback (кроме iOS)
+    setTimeout(() => {
+      if (!deferredInstallPrompt && !navigator.standalone && !(/iphone|ipad|ipod/i.test(navigator.userAgent))) {
+        installBtn.style.display = 'inline-flex';
+        installBtn.title = 'Установить через меню браузера';
+      }
+    }, 3000);
+
+    // iOS/Safari: подсказка ручной установки (один раз)
     if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone && !localStorage.getItem('iosHintShown')) {
       localStorage.setItem('iosHintShown', '1');
-      setTimeout(() => alert('Чтобы установить приложение на iPhone:\n1. Нажмите «Поделиться» (квадрат со стрелкой)\n2. Прокрутите вниз → «На экран "Домой"»\n3. Нажмите «Добавить»'), 1500);
+      setTimeout(() => alert('Чтобы установить приложение на iPhone/iPad:\n1. Нажмите «Поделиться» (квадрат со стрелкой)\n2. Прокрутите вниз → «На экран "Домой"»\n3. Нажмите «Добавить»'), 2000);
     }
 
     // Старт
@@ -995,7 +1010,9 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW Error:', err));
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.error('SW Error:', err));
       });
     }
   </script>
