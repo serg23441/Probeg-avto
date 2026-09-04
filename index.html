@@ -8,6 +8,10 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0b1329">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Автопарк">
 
   <!-- Библиотеки для экспорта в Excel (XLSX) и PDF -->
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -126,15 +130,6 @@
     }
     .print-title { display: none; }
 
-    /* Экран входа */
-    .login-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: none; align-items: center; justify-content: center; padding: 16px; }
-    .login-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-    .login-card h2 { text-align: center; margin-bottom: 6px; font-size: 1.4rem; }
-    .login-subtitle { text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
-    .login-remember { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; cursor: pointer; }
-    .login-remember input { width: 16px; height: 16px; accent-color: var(--accent); }
-    .login-error { color: var(--danger); font-size: 0.8rem; text-align: center; margin-top: 10px; min-height: 1.2em; font-weight: 600; }
-    .login-hint { color: var(--text-muted); font-size: 0.75rem; text-align: center; margin-top: 14px; }
 
     /* Модальное окно */
     .modal-overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.7); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
@@ -150,28 +145,6 @@
 </head>
 <body>
 
-  <!-- Экран входа -->
-  <div id="loginOverlay" class="login-overlay">
-    <div class="login-card">
-      <h2>🔐 Автопарк</h2>
-      <p id="loginSubtitle" class="login-subtitle">Введите пароль для доступа</p>
-      <div class="field-group" style="margin-bottom: 12px;">
-        <label>Пароль</label>
-        <input type="password" id="loginPassword" placeholder="••••••" autocomplete="off" style="width:100%;">
-      </div>
-      <div class="field-group" id="confirmPasswordGroup" style="display:none; margin-bottom: 12px;">
-        <label>Повторите пароль</label>
-        <input type="password" id="loginPasswordConfirm" placeholder="••••••" autocomplete="off" style="width:100%;">
-      </div>
-      <label class="login-remember">
-        <input type="checkbox" id="loginRemember"> Запомнить на этом устройстве
-      </label>
-      <button class="btn btn-primary" id="loginBtn" style="width:100%; margin-top:14px; justify-content:center;">Войти</button>
-      <p id="loginError" class="login-error"></p>
-      <p class="login-hint">Пароль хранится локально — восстановить невозможно.<br>При утере — очистите localStorage в браузере.</p>
-    </div>
-  </div>
-
   <div class="container">
     <!-- Сводная таблица автопарка -->
     <div class="card fleet-summary-card">
@@ -183,7 +156,6 @@
         <div class="actions-bar">
           <input type="search" id="fleetSearch" placeholder="Поиск: имя / авто / номер">
           <input type="month" id="monthSelector">
-          <button class="btn" onclick="logout()" title="Сменить пользователя">🚪 Выйти</button>
         </div>
       </div>
 
@@ -217,6 +189,7 @@
           <button class="btn btn-success" onclick="exportYearToExcel()" title="Все месяцы текущего года">Excel (год)</button>
           <button class="btn btn-danger" onclick="exportToPDF()">Скачать PDF</button>
           <button class="btn btn-primary" onclick="window.print()">Печать</button>
+          <button class="btn" id="installBtn" style="display:none;">⬇ Установить</button>
         </div>
       </div>
 
@@ -360,93 +333,6 @@
       const div = document.createElement('div');
       div.textContent = (str === null || str === undefined) ? '' : String(str);
       return div.innerHTML;
-    }
-
-    // === АВТОРИЗАЦИЯ ===
-    const AUTH_HASH_KEY = 'fleet_auth_hash';
-    const AUTH_SESSION_KEY = 'fleet_auth_session';
-    const SESSION_DAYS = 7;
-
-    async function sha256(str) {
-      const buf = new TextEncoder().encode(str);
-      const hash = await crypto.subtle.digest('SHA-256', buf);
-      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    function getSession() {
-      const s = localStorage.getItem(AUTH_SESSION_KEY);
-      if (!s) return null;
-      try { return JSON.parse(s); } catch { return null; }
-    }
-    function setSession(hash) {
-      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({ hash, exp: Date.now() + SESSION_DAYS * 86400000 }));
-    }
-    function clearSession() {
-      localStorage.removeItem(AUTH_SESSION_KEY);
-    }
-
-    async function checkLogin() {
-      const hash = localStorage.getItem(AUTH_HASH_KEY);
-      const session = getSession();
-      if (hash && session && session.hash === hash && session.exp > Date.now()) {
-        hideLogin();
-        loadData();
-        return;
-      }
-      showLogin(!hash);
-    }
-
-    function showLogin(isSetup) {
-      document.getElementById('loginOverlay').style.display = 'flex';
-      document.querySelector('.container').style.display = 'none';
-      document.getElementById('loginSubtitle').textContent = isSetup
-        ? 'Придумайте пароль для защиты данных' : 'Введите пароль для доступа';
-      document.getElementById('confirmPasswordGroup').style.display = isSetup ? 'flex' : 'none';
-      document.getElementById('loginBtn').textContent = isSetup ? 'Установить пароль' : 'Войти';
-      document.getElementById('loginPassword').value = '';
-      document.getElementById('loginPasswordConfirm').value = '';
-      document.getElementById('loginError').textContent = '';
-      document.getElementById('loginPassword').focus();
-    }
-
-    function hideLogin() {
-      document.getElementById('loginOverlay').style.display = 'none';
-      document.querySelector('.container').style.display = 'flex';
-    }
-
-    async function handleLogin() {
-      const pwd = document.getElementById('loginPassword').value;
-      const confirm = document.getElementById('loginPasswordConfirm').value;
-      const isSetup = document.getElementById('confirmPasswordGroup').style.display !== 'none';
-      const err = document.getElementById('loginError');
-
-      if (!pwd || pwd.length < 4) { err.textContent = 'Минимум 4 символа'; return; }
-      if (isSetup && pwd !== confirm) { err.textContent = 'Пароли не совпадают'; return; }
-
-      const hash = await sha256(pwd);
-      const storedHash = localStorage.getItem(AUTH_HASH_KEY);
-
-      if (isSetup) {
-        localStorage.setItem(AUTH_HASH_KEY, hash);
-        if (document.getElementById('loginRemember').checked) setSession(hash);
-        hideLogin();
-        loadData();
-      } else {
-        if (hash === storedHash) {
-          if (document.getElementById('loginRemember').checked) setSession(hash);
-          hideLogin();
-          loadData();
-        } else {
-          err.textContent = 'Неверный пароль';
-          document.getElementById('loginPassword').value = '';
-          document.getElementById('loginPassword').focus();
-        }
-      }
-    }
-
-    function logout() {
-      clearSession();
-      location.reload();
     }
 
     // === СЕТЬ И СИНХРОНИЗАЦИЯ ===
@@ -1078,13 +964,31 @@
     window.addEventListener('resize', () => drawLineChart(cachedChartData));
     setInterval(loadData, 60000); // Фоновая синхронизация раз в минуту
 
-    // Обработчики экрана входа
-    document.getElementById('loginBtn').addEventListener('click', handleLogin);
-    document.getElementById('loginPassword').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
-    document.getElementById('loginPasswordConfirm').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+    // === УСТАНОВКА PWA (ПК и Android) ===
+    let deferredInstallPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();                     // не показываем авто-prompt, ждём клика по кнопке
+      deferredInstallPrompt = e;
+      installBtn.style.display = 'inline-flex';
+    });
+    installBtn.addEventListener('click', async () => {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === 'accepted') installBtn.style.display = 'none';
+      deferredInstallPrompt = null;
+    });
+    window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
 
-    // Старт — проверка авторизации
-    checkLogin();
+    // iOS/Safari: beforeinstallprompt не срабатывает — показываем подсказку один раз
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone && !localStorage.getItem('iosHintShown')) {
+      localStorage.setItem('iosHintShown', '1');
+      setTimeout(() => alert('Чтобы установить приложение на iPhone:\n1. Нажмите «Поделиться» (квадрат со стрелкой)\n2. Прокрутите вниз → «На экран "Домой"»\n3. Нажмите «Добавить»'), 1500);
+    }
+
+    // Старт
+    loadData();
   </script>
 
   <!-- Service Worker для PWA -->
