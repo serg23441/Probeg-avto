@@ -13,10 +13,6 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Автопарк">
 
-  <!-- Библиотеки для экспорта в Excel (XLSX) и PDF -->
-  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
   <style>
     :root {
       --bg: #0b1329;
@@ -43,7 +39,6 @@
     h1 { font-size: 1.25rem; font-weight: 700; }
     h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 12px; color: #cbd5e1; }
 
-    /* Микро-анимация сохранения */
     .sync-status { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; transition: all 0.3s ease; }
     .status-online { background: rgba(74, 222, 128, 0.15); color: var(--positive); }
     .status-saving { background: rgba(245, 158, 11, 0.15); color: var(--fuel); }
@@ -75,7 +70,6 @@
     .summary-value.fuel { color: var(--fuel); }
     .summary-value.money { color: var(--money); }
 
-    /* Interactive Chart */
     .chart-wrapper { position: relative; background: #111a2e; border: 1px solid #233249; border-radius: 10px; padding: 14px; margin-top: 20px; }
     .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.82rem; }
     .chart-title { font-weight: 600; color: #cbd5e1; }
@@ -86,9 +80,8 @@
     .chart-canvas-box { position: relative; width: 100%; height: 200px; cursor: crosshair; touch-action: none; }
     canvas { width: 100%; height: 100%; display: block; }
     
-    .chart-tooltip { position: absolute; display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,0.5); z-index: 10; white-space: nowrap; }
+    .chart-tooltip { position: absolute; display: none; background: rgba(15, 23, 42, 0.95); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; line-height: 1.4; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,0.5); z-index: 10; white-space: nowrap; transition: top 0.1s ease, left 0.1s ease; }
 
-    /* Table & Mobile Sticky Column */
     .table-wrapper { overflow-x: auto; margin-top: 16px; border-radius: 8px; border: 1px solid var(--border); }
     table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 0.84rem; }
     th { color: var(--text-muted); border-bottom: 1px solid var(--border); padding: 10px 8px; font-weight: 600; white-space: nowrap; background: #162032; }
@@ -99,7 +92,6 @@
     tr.prev-month-row td { background-color: rgba(59, 130, 246, 0.05); border-bottom: 2px solid var(--border); }
     tr.weekend td { background-color: rgba(239, 68, 68, 0.03); }
 
-    /* Sticky first column for mobile */
     @media (max-width: 768px) {
       th:first-child, td:first-child { position: sticky; left: 0; z-index: 2; box-shadow: 2px 0 5px rgba(0,0,0,0.15); }
       th:first-child { z-index: 3; }
@@ -111,27 +103,25 @@
     .prev-tag { display: block; font-size: 0.65rem; color: var(--accent); text-transform: uppercase; font-weight: 700; }
     .weekend .day-weekday { color: var(--danger); }
 
-    input.grid-input { background: #0b1120; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; color: var(--text); font-size: 0.84rem; outline: none; width: 100%; transition: 0.2s; }
+    input.grid-input { background: #0b1120; border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; color: var(--text); font-size: 0.84rem; outline: none; width: 100%; transition: 0.2s; }
     input.grid-input:focus { border-color: var(--accent); background: #0f1a30; }
     
-    /* Валидация */
     input.input-error { border-color: var(--danger) !important; background: var(--danger-bg) !important; color: #fca5a5; }
     .delta-badge { font-weight: 600; color: var(--positive); white-space: nowrap; }
     .delta-empty { color: var(--text-muted); }
 
-    /* Print / PDF Mode */
     @media print {
       body, .card { background: #fff !important; color: #000 !important; padding: 0; box-shadow: none; border: none; }
       .header-bar, .actions-bar, .fleet-summary-card, .chart-wrapper, #driverSelect, .btn { display: none !important; }
+      .profile-grid input, input[type="number"], input[type="text"] { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
       table { border: 1px solid #000; font-size: 9pt; }
       th, td { border: 1px solid #000 !important; color: #000 !important; padding: 4px !important; background: #fff !important; }
-      input { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
-      .print-title { display: block !important; margin-bottom: 12px; font-size: 16pt; font-weight: bold; text-align: center; }
+      .summary-grid { border: 1px solid #000; margin-bottom: 12px; padding: 8px; }
+      .summary-value { color: #000 !important; }
+      .print-title { display: block !important; margin-bottom: 8px; font-size: 14pt; }
     }
     .print-title { display: none; }
 
-
-    /* Модальное окно */
     .modal-overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.7); display: none; align-items: center; justify-content: center; z-index: 100; padding: 16px; }
     .modal-overlay.open { display: flex; }
     .modal-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; width: 100%; max-width: 380px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
@@ -146,7 +136,6 @@
 <body>
 
   <div class="container">
-    <!-- Сводная таблица автопарка -->
     <div class="card fleet-summary-card">
       <div class="header-bar">
         <div>
@@ -178,7 +167,6 @@
       </div>
     </div>
 
-    <!-- Индивидуальный лист водителя (Обертка для PDF) -->
     <div class="card" id="printArea">
       <h1 class="print-title">Путевой лист и отчет по пробегу ГСМ</h1>
       
@@ -220,7 +208,6 @@
         <div class="summary-item"><span class="summary-label">Финиш одометра</span><span class="summary-value" id="endOdo">—</span></div>
       </div>
 
-      <!-- Интерактивный График -->
       <div class="chart-wrapper">
         <div class="chart-header">
           <span class="chart-title" id="chartDriverTitle">Динамика по дням</span>
@@ -235,7 +222,6 @@
         </div>
       </div>
 
-      <!-- Таблица дней -->
       <div class="table-wrapper">
         <table>
           <thead>
@@ -254,7 +240,6 @@
     </div>
   </div>
 
-  <!-- Модальное окно удаления водителя -->
   <div id="deleteModal" class="modal-overlay">
     <div class="modal-card">
       <h3>Удалить водителя?</h3>
@@ -271,21 +256,16 @@
   </div>
 
   <script>
-    // === НАСТРОЙКИ ===
     const FIREBASE_DB_URL = "https://gidravlika-default-rtdb.firebaseio.com/";
-    // СЕКРЕТНЫЙ КЛЮЧ БД: смените значение И обновите database.rules.json в Firebase!
-    // Внимание: это защита через непубличный путь (obscurity), а не полноценная аутентификация.
     const DB_SECRET = "kp7xQ2m9dF4w";
     const DB_ROOT = `fleet_${DB_SECRET}`;
     const LOCAL_KEY = 'fleet_full_state_v2';
     const weekdaysRu = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
-    // === СОСТОЯНИЕ (STORE) ===
     let Store = { drivers: [], logs: {} };
     let cachedChartData = [];
-    let pendingWrites = {}; // очередь точечной записи: "logs/d1_2026-08/05" -> значение (null = удалить ветку)
+    let pendingWrites = {}; 
 
-    // === DOM ЭЛЕМЕНТЫ ===
     const UI = {
       monthSelector: document.getElementById('monthSelector'),
       driverSelect: document.getElementById('driverSelect'),
@@ -314,12 +294,9 @@
       }
     };
 
-    // Инициализация месяца
     const now = new Date();
     UI.monthSelector.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    // === УТИЛИТЫ (DEBOUNCE) ===
-    // Ограничивает частоту вызовов тяжелых функций (рендер DOM и отправка в сеть)
     function debounce(func, wait) {
       let timeout;
       return function(...args) {
@@ -328,14 +305,12 @@
       };
     }
 
-    // Экранирование пользовательского ввода перед вставкой в HTML (защита от XSS/инъекций в атрибуты)
     function escapeHtml(str) {
       const div = document.createElement('div');
       div.textContent = (str === null || str === undefined) ? '' : String(str);
       return div.innerHTML;
     }
 
-    // === СЕТЬ И СИНХРОНИЗАЦИЯ ===
     function setStatus(text, type, glow = false) {
       UI.syncIndicator.textContent = text;
       UI.syncIndicator.className = `sync-status status-${type} ${glow ? 'glow-effect' : ''}`;
@@ -347,14 +322,12 @@
     }
 
     async function loadData() {
-      // Сначала грузим локальный кэш (Fallback)
       const local = localStorage.getItem(LOCAL_KEY);
       if (local) Store = JSON.parse(local);
       else initDefaultDrivers();
 
       refreshUI();
 
-      // Затем стягиваем свежее из сети
       if (!FIREBASE_DB_URL.includes("ваш-проект")) {
         try {
           setStatus("Обновление...", "saving");
@@ -362,21 +335,16 @@
           if (res.ok) {
             const data = await res.json();
             if (data && data.drivers) {
-              
-              // ИСПРАВЛЕНИЕ: Всегда принимаем облако как ЕДИНЫЙ центр правды
               Store = data; 
               saveLocally();
               refreshUI();
-
-              // Если в момент скачивания у нас были не отправленные правки — досылаем их
               if (Object.keys(pendingWrites).length > 0) {
                 syncToCloud(); 
               } else {
                 setStatus("● Онлайн", "online");
               }
-              
             } else {
-              syncToCloud(); // База пуста, пушим локалку
+              syncToCloud(); 
             }
           }
         } catch (err) {
@@ -385,16 +353,15 @@
       }
     }
 
-    // Помечает ветку как изменённую — в облако уйдёт только она, а не всё дерево
     function markDirty(path, value) {
-      pendingWrites[path] = value; // null = удаление ветки
+      pendingWrites[path] = value; 
       Store.updatedAt = Date.now();
-      pendingWrites['updatedAt'] = Store.updatedAt; // ИСПРАВЛЕНИЕ: Теперь время отправляется в базу
+      pendingWrites['updatedAt'] = Store.updatedAt; 
       saveLocally();
     }
 
     const syncToCloud = async () => {
-      saveLocally(); // Всегда 100% сейв локально
+      saveLocally(); 
       if (FIREBASE_DB_URL.includes("ваш-проект")) return;
 
       const jobs = Object.entries(pendingWrites);
@@ -403,7 +370,6 @@
       setStatus("Сохранение...", "saving");
       try {
         const base = `${FIREBASE_DB_URL.replace(/\/$/, '')}/${DB_ROOT}`;
-        // Параллельная точечная запись только изменённых веток — никаких PUT всего дерева
         await Promise.all(jobs.map(([p, v]) =>
           fetch(`${base}/${p}.json`, {
             method: 'PUT',
@@ -411,22 +377,20 @@
             body: v === null ? 'null' : JSON.stringify(v)
           }).then(r => { if (!r.ok) throw new Error(p); delete pendingWrites[p]; })
         ));
-        setStatus("● Сохранено", "online", true); // Микро-анимация
+        setStatus("● Сохранено", "online", true); 
       } catch (err) {
-        setStatus("● Офлайн (ожидание сети)", "error"); // pendingWrites остаётся, повторим при следующей синхронизации
+        setStatus("● Офлайн (ожидание сети)", "error"); 
       }
     };
 
     const debouncedSync = debounce(syncToCloud, 1000);
     
-    // Единая функция обновления вычислений, вызываемая с задержкой при вводе
     const debouncedRecalculate = debounce(() => {
       recalculateStats();
       renderFleetSummary();
       debouncedSync();
     }, 400);
 
-    // === ЛОГИКА ДАННЫХ ===
     function initDefaultDrivers() {
       Store.drivers = [{ id: 1, name: "Иванов И.И.", car: "ГАЗель Next", plate: "А 001 АА", fuelPrice: 62.0 }];
       Store.logs = {};
@@ -447,8 +411,7 @@
       if (Store.drivers.length <= 1) return alert("Нельзя удалить последнего водителя!");
       driverToDelete = parseInt(UI.driverSelect.value, 10);
       const drv = Store.drivers.find(d => d.id === driverToDelete);
-      document.getElementById('deleteModalText').textContent =
-        `Водитель «${drv ? drv.name : driverToDelete}» будет удалён из списка автопарка.`;
+      document.getElementById('deleteModalText').textContent = `Водитель «${drv ? drv.name : driverToDelete}» будет удалён из списка автопарка.`;
       document.getElementById('deleteLogsCheck').checked = false;
       document.getElementById('deleteModal').classList.add('open');
     }
@@ -466,7 +429,7 @@
       Store.drivers = Store.drivers.filter(d => d.id !== id);
       if (alsoLogs) {
         Object.keys(Store.logs).forEach(k => {
-          if (k.startsWith(`d${id}_`)) { delete Store.logs[k]; markDirty(`logs/${k}`, null); } // null = удалить ветку в Firebase
+          if (k.startsWith(`d${id}_`)) { delete Store.logs[k]; markDirty(`logs/${k}`, null); } 
         });
       }
       markDirty('drivers', Store.drivers);
@@ -497,7 +460,6 @@
       };
     }
 
-    // === РЕНДЕР И ВЗАИМОДЕЙСТВИЕ ===
     function refreshUI() {
       populateDriverSelect();
       handleDriverChange();
@@ -576,7 +538,6 @@
 
       UI.daysBody.innerHTML = html;
 
-      // Привязка событий ввода к DOM (синхронное обновление State, но отложенный Render)
       UI.daysBody.querySelectorAll('.grid-input').forEach(inp => {
         inp.addEventListener('input', (e) => {
           const day = e.target.dataset.day;
@@ -620,7 +581,6 @@
         const fVal = parseFloat(fuelIn.value) || 0;
         let dayDelta = 0;
 
-        // Расчет пробега с Валидацией
         if (oVal !== '') {
           const currOdo = parseInt(oVal, 10);
           if (isPrev) startOdo = currOdo; else { if(startOdo===null) startOdo=currOdo; lastOdo = currOdo; }
@@ -634,7 +594,7 @@
                 odoIn.classList.remove('input-error');
               } else {
                 delCell.innerHTML = `<span style="color:var(--danger); font-weight:600;">${diff} км</span>`;
-                odoIn.classList.add('input-error'); // Подсветка ошибки (отрицательный пробег)
+                odoIn.classList.add('input-error'); 
               }
             }
           } else {
@@ -646,7 +606,6 @@
           odoIn.classList.remove('input-error');
         }
 
-        // Расчет топлива
         if(!isPrev) {
           if (fVal > 0) {
             totalFuel += fVal;
@@ -678,7 +637,6 @@
       UI.fleetBody.innerHTML = '';
       let sumKm=0, sumFuel=0, sumCost=0;
 
-      // Фильтр поиска (имя / авто / госномер / id)
       const q = (UI.fleetSearch.value || '').trim().toLowerCase();
       const visible = q
         ? Store.drivers.filter(d =>
@@ -686,7 +644,6 @@
         : Store.drivers;
 
       visible.forEach(d => {
-        // Упрощенный расчет сводки без рендера DOM
         let k=0, f=0, pOdo=null;
         const cData = Store.logs[`d${d.id}_${month}`] || {};
         const pInfo = getPrevMonthInfo(...month.split('-').map(Number));
@@ -727,7 +684,6 @@
         <td>${(sumKm>0&&sumFuel>0)?((sumFuel/sumKm)*100).toFixed(1)+' л':'—'}</td></tr>`;
     }
 
-    // === ИНТЕРАКТИВНЫЙ ГРАФИК С ПОДДЕРЖКОЙ TOUCH ===
     function drawLineChart(items, activeIdx = -1) {
       if (!UI.canvas || items.length === 0) return;
       const ctx = UI.canvas.getContext('2d');
@@ -751,7 +707,6 @@
         ctx.beginPath(); ctx.moveTo(pl, y); ctx.lineTo(w-pr, y); ctx.stroke();
         ctx.fillText(Math.round((maxKm/4)*g), pl-6, y+4);
       }
-      // Правая шкала — литры
       ctx.textAlign='left'; ctx.fillStyle='#f59e0b';
       for(let g=0; g<=4; g++){
         const y = pt + pH - (pH/4)*g;
@@ -780,7 +735,6 @@
         ctx.fillStyle=hover?'#60a5fa':'#1e293b'; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#3b82f6'; ctx.stroke();
         
         if (p.fuel>0) {
-          // Столбик заправки по правой шкале (литры)
           const barH = Math.max(4, (p.fuel/maxFuel) * pH * 0.85);
           ctx.fillStyle = hover ? '#fbbf24' : 'rgba(245,158,11,0.75)';
           ctx.fillRect(p.x-4, pt+pH-barH, 8, barH);
@@ -820,13 +774,31 @@
       }
     }
 
-    // Поддержка мыши и пальца (Touch)
     UI.chartBox.addEventListener('mousemove', e => handleChartInteraction(e.clientX, e.clientY));
     UI.chartBox.addEventListener('mouseleave', () => { UI.chartTooltip.style.display='none'; drawLineChart(cachedChartData, -1); });
     UI.chartBox.addEventListener('touchmove', e => { e.preventDefault(); handleChartInteraction(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
 
-    // === ЭКСПОРТ ДАННЫХ ===
-    function getExportData() {
+    // --- УНИВЕРСАЛЬНАЯ ЛЕНИВАЯ ЗАГРУЗКА БИБЛИОТЕК ЭКСПОНЕНТА ---
+    function loadScript(url) {
+      return new Promise((resolve, reject) => {
+        if (document.querySelector(`script[src="${url}"]`)) return resolve();
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+    }
+
+    async function exportToExcel() {
+      setStatus("Загрузка Excel...", "saving");
+      try {
+        await loadScript("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
+        setStatus("● Онлайн", "online");
+      } catch(e) {
+        setStatus("Ошибка загрузки модуля", "error");
+        return;
+      }
       const dId = UI.driverSelect.value;
       const drv = Store.drivers.find(d => d.id == dId);
       const [y, m] = UI.monthSelector.value.split('-').map(Number);
@@ -856,22 +828,21 @@
         const cost = fuel>0 && price>0 ? fuel*price : '';
         aoa.push([`${ds}.${String(m).padStart(2,'0')}`, weekdaysRu[new Date(y,m-1,i).getDay()], odo, delta, fuel, cost, e.note||'']);
       }
-      return { aoa, name: drv?.name || 'driver' };
-    }
-
-    // Экспорт в настоящий .xlsx через SheetJS
-    function exportToExcel() {
-      if (typeof XLSX === 'undefined') return alert('Библиотека Excel еще загружается, подождите секунду.');
-      const data = getExportData();
-      const ws = XLSX.utils.aoa_to_sheet(data.aoa);
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Табель");
-      XLSX.writeFile(wb, `Putevoy_${data.name}_${UI.monthSelector.value}.xlsx`);
+      XLSX.writeFile(wb, `Putevoy_${drv?.name || 'driver'}_${UI.monthSelector.value}.xlsx`);
     }
 
-    // Экспорт в Excel за весь год — по листу на каждый месяц
-    function exportYearToExcel() {
-      if (typeof XLSX === 'undefined') return alert('Библиотека Excel еще загружается, подождите секунду.');
+    async function exportYearToExcel() {
+      setStatus("Загрузка модуля...", "saving");
+      try {
+        await loadScript("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
+        setStatus("● Онлайн", "online");
+      } catch(e) {
+        setStatus("Ошибка загрузки модуля", "error");
+        return;
+      }
       const dId = UI.driverSelect.value;
       const drv = Store.drivers.find(d => d.id == dId);
       const [y] = UI.monthSelector.value.split('-').map(Number);
@@ -885,7 +856,6 @@
         const days = new Date(y, m, 0).getDate();
         const mData = Store.logs[`d${dId}_${monthKey}`] || {};
 
-        // Предыдущий месяц для базы
         const prevD = new Date(y, m - 1, 0);
         const pKey = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2,'0')}`;
         const pData = Store.logs[`d${dId}_${pKey}`] || {};
@@ -937,21 +907,23 @@
       XLSX.writeFile(wb, `Godovoy_otchet_${escapeHtml(drv?.name||'driver').replace(/[<>:"/\\|?*]/g,'_')}_${y}.xlsx`);
     }
 
-    // Экспорт в PDF через html2pdf — работаем с КЛОНОМ, оригинальный DOM не трогаем
-    // (старая версия делала parentElement.innerHTML += ..., что пересоздавало DOM,
-    //  уничтожая все input и их обработчики — после экспорта таблица переставала реагировать на ввод)
-    function exportToPDF() {
-      if (typeof html2pdf === 'undefined') return alert('Библиотека PDF загружается...');
+    async function exportToPDF() {
+      setStatus("Загрузка PDF...", "saving");
+      try {
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
+        setStatus("● Онлайн", "online");
+      } catch(e) {
+        setStatus("Ошибка загрузки модуля", "error");
+        return;
+      }
 
       const clone = UI.printArea.cloneNode(true);
-      // В клоне заменяем input на span с теми же значениями
       clone.querySelectorAll('input').forEach(inp => {
         const span = document.createElement('span');
         span.textContent = inp.value || '—';
         span.style.cssText = 'display:inline-block; padding:2px 0; white-space:nowrap;';
         inp.replaceWith(span);
       });
-      // Прячем кнопки в клоне
       clone.querySelectorAll('.actions-bar').forEach(el => el.remove());
 
       clone.style.cssText = 'position:absolute; left:-10000px; top:0; width:1100px; background:#fff; color:#000;';
@@ -963,14 +935,12 @@
         .catch(() => clone.remove());
     }
 
-    // === СЛУШАТЕЛИ ===
     UI.monthSelector.addEventListener('change', () => { renderTableGrid(); renderFleetSummary(); });
     UI.fleetSearch.addEventListener('input', debounce(renderFleetSummary, 200));
     UI.driverSelect.addEventListener('change', handleDriverChange);
     window.addEventListener('resize', () => drawLineChart(cachedChartData));
-    setInterval(loadData, 60000); // Фоновая синхронизация раз в минуту
+    setInterval(loadData, 60000); 
 
-    // === УСТАНОВКА PWA (ПК, Android, iOS) ===
     let deferredInstallPrompt = null;
     const installBtn = document.getElementById('installBtn');
 
@@ -982,7 +952,6 @@
 
     installBtn.addEventListener('click', async () => {
       if (!deferredInstallPrompt) {
-        // Fallback: если beforeinstallprompt не пришёл (уже установлено или не поддерживается)
         alert('Установка через меню браузера:\nChrome/Edge → ⋮ → «Установить приложение»\nSafari → Поделиться → «На экран Домой»');
         return;
       }
@@ -994,7 +963,6 @@
 
     window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
 
-    // Если через 3 секунды beforeinstallprompt не пришёл — показываем кнопку как fallback (кроме iOS)
     setTimeout(() => {
       if (!deferredInstallPrompt && !navigator.standalone && !(/iphone|ipad|ipod/i.test(navigator.userAgent))) {
         installBtn.style.display = 'inline-flex';
@@ -1002,17 +970,14 @@
       }
     }, 3000);
 
-    // iOS/Safari: подсказка ручной установки (один раз)
     if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone && !localStorage.getItem('iosHintShown')) {
       localStorage.setItem('iosHintShown', '1');
       setTimeout(() => alert('Чтобы установить приложение на iPhone/iPad:\n1. Нажмите «Поделиться» (квадрат со стрелкой)\n2. Прокрутите вниз → «На экран "Домой"»\n3. Нажмите «Добавить»'), 2000);
     }
 
-    // Старт
     loadData();
   </script>
 
-  <!-- Service Worker для PWA -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
