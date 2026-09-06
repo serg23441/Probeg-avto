@@ -45,7 +45,7 @@
     .status-error { background: var(--danger-bg); color: var(--danger); }
     .glow-effect { box-shadow: 0 0 12px var(--positive); }
 
-    input[type="month"], input[type="search"], select { background: #0b1120; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 0.9rem; outline: none; color-scheme: dark; }
+    input[type="month"], input[type="date"], input[type="time"], input[type="search"], select { background: #0b1120; border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font-size: 0.9rem; outline: none; color-scheme: dark; }
     
     .actions-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
     .btn { background: #0b1120; color: var(--text); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; display: inline-flex; align-items: center; transition: 0.2s; }
@@ -110,15 +110,41 @@
     .delta-badge { font-weight: 600; color: var(--positive); white-space: nowrap; }
     .delta-empty { color: var(--text-muted); }
 
+    /* ===== Путевой лист, типовая форма № 3 ===== */
+    #wbOverlay { position: fixed; inset: 0; background: rgba(2,6,23,0.88); display: none; overflow-y: auto; padding: 16px; z-index: 300; }
+    #wbOverlay.open { display: block; }
+    .wb-toolbar { position: sticky; top: 8px; z-index: 5; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; max-width: 900px; margin: 0 auto 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+    .wb-sheet { background: #fff; color: #000; max-width: 900px; margin: 0 auto 40px; padding: 26px 30px; font-family: "Times New Roman", Times, serif; font-size: 11px; line-height: 1.35; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+    .wb-sheet table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 4px; }
+    .wb-sheet td, .wb-sheet th { border: 1px solid #000; padding: 3px 5px; vertical-align: top; background: #fff !important; color: #000 !important; }
+    .wb-sheet .wb-nob td, .wb-sheet .wb-nob th { border: none; }
+    .wb-sheet input { border: none; border-bottom: 1px dotted #444; background: transparent; color: #000; font: inherit; padding: 0 2px; outline: none; width: auto; min-width: 36px; }
+    .wb-sheet .wb-center { text-align: center; }
+    .wb-sheet .wb-right { text-align: right; }
+    .wb-sheet .wb-bold { font-weight: 700; }
+    .wb-sheet .wb-chip { display: inline-block; border: 1px solid #000; padding: 0 5px; font-size: 10px; }
+    .wb-page-break { page-break-before: always; }
+
     @media print {
-      body, .card { background: #fff !important; color: #000 !important; padding: 0; box-shadow: none; border: none; }
+      body.wb-print { background: #fff; padding: 0; }
+      body.wb-print > *:not(#wbOverlay) { display: none !important; }
+      body.wb-print #wbOverlay { display: block !important; position: static; background: #fff; padding: 0; overflow: visible; }
+      body.wb-print .wb-toolbar { display: none !important; }
+      body.wb-print .wb-sheet { box-shadow: none; max-width: none; margin: 0; padding: 0; font-size: 10px; }
+      body.wb-print .wb-sheet table, body.wb-print .wb-sheet td, body.wb-print .wb-sheet th { font-size: 10px; }
+    }
+
+    @media print {
+      body, .container, .card { display: block !important; height: auto !important; max-height: none !important; overflow: visible !important; background: #fff !important; color: #000 !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
       .header-bar, .actions-bar, .fleet-summary-card, .chart-wrapper, #driverSelect, .btn { display: none !important; }
-      .profile-grid input, input[type="number"], input[type="text"] { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; }
-      table { border: 1px solid #000; font-size: 9pt; }
-      th, td { border: 1px solid #000 !important; color: #000 !important; padding: 4px !important; background: #fff !important; }
+      .table-wrapper { overflow: visible !important; margin: 0 !important; border: none !important; }
+      table { width: 100% !important; table-layout: auto !important; border-collapse: collapse !important; border: 1px solid #000; font-size: 9pt; }
+      th, td { border: 1px solid #000 !important; color: #000 !important; padding: 4px !important; background: #fff !important; white-space: normal !important; word-break: break-word !important; }
+      .day-cell { white-space: nowrap !important; }
+      .profile-grid input, input.grid-input, input[type="number"], input[type="text"], input[type="time"] { border: none !important; background: transparent !important; color: #000 !important; padding: 0 !important; width: 100% !important; box-sizing: border-box !important; outline: none !important; }
       .summary-grid { border: 1px solid #000; margin-bottom: 12px; padding: 8px; }
       .summary-value { color: #000 !important; }
-      .print-title { display: block !important; margin-bottom: 8px; font-size: 14pt; }
+      .print-title { display: block !important; margin-bottom: 8px; font-size: 14pt; font-weight: bold; }
     }
     .print-title { display: none; }
 
@@ -173,10 +199,8 @@
       <div class="header-bar">
         <h2>Индивидуальный табель</h2>
         <div class="actions-bar">
-          <button class="btn btn-success" onclick="exportToExcel()">Excel (XLSX)</button>
-          <button class="btn btn-success" onclick="exportYearToExcel()" title="Все месяцы текущего года">Excel (год)</button>
-          <button class="btn btn-danger" onclick="exportToPDF()">Скачать PDF</button>
           <button class="btn btn-primary" onclick="window.print()">Печать</button>
+          <button class="btn btn-primary" onclick="openWaybillModal()">🧾 Путевой лист №3</button>
           <button class="btn" id="installBtn" style="display:none;">⬇ Установить</button>
         </div>
       </div>
@@ -197,7 +221,25 @@
         <div class="field-group"><label>Автомобиль</label><input type="text" id="carModel"></div>
         <div class="field-group"><label>Госномер</label><input type="text" id="carPlate"></div>
         <div class="field-group"><label>Цена ГСМ (₽/л)</label><input type="number" id="fuelPrice" step="0.1" min="0"></div>
+        <div class="field-group"><label>Табельный №</label><input type="text" id="driverTabNum"></div>
+        <div class="field-group"><label>Удостоверение №</label><input type="text" id="driverLicense"></div>
+        <div class="field-group"><label>Класс</label><input type="text" id="driverLicenseClass"></div>
       </div>
+
+      <details style="margin-bottom:16px; background:#131d31; border-radius:8px; padding:10px 14px;">
+        <summary style="cursor:pointer; font-weight:600; color:#cbd5e1; font-size:0.85rem;">Реквизиты организации и нормы (для путевого листа, форма № 3)</summary>
+        <div class="profile-grid" style="margin-top:12px;">
+          <div class="field-group"><label>Организация</label><input type="text" id="setOrgName"></div>
+          <div class="field-group"><label>Телефон</label><input type="text" id="setOrgPhone"></div>
+          <div class="field-group"><label>ИНН</label><input type="text" id="setOrgInn"></div>
+          <div class="field-group"><label>КПП</label><input type="text" id="setOrgKpp"></div>
+          <div class="field-group"><label>ОГРН</label><input type="text" id="setOrgOgrn"></div>
+          <div class="field-group"><label>Адрес подачи</label><input type="text" id="setPickupAddress"></div>
+          <div class="field-group"><label>Марка ГСМ</label><input type="text" id="setFuelMark"></div>
+          <div class="field-group"><label>Норма расхода, л/100км</label><input type="number" id="setFuelNorm" step="0.1" min="0"></div>
+          <div class="field-group"><label>Механик / диспетчер</label><input type="text" id="setMechanic"></div>
+        </div>
+      </details>
 
       <div class="summary-grid">
         <div class="summary-item"><span class="summary-label">Пробег</span><span class="summary-value" id="monthTotal">0 км</span></div>
@@ -226,11 +268,13 @@
         <table>
           <thead>
             <tr>
-              <th style="width: 80px;">Дата</th>
-              <th style="width: 130px;">Одометр (км)</th>
-              <th style="width: 100px;">Пробег</th>
-              <th style="width: 100px;">ГСМ (л)</th>
-              <th style="width: 110px;">Сумма (₽)</th>
+              <th style="width: 75px;">Дата</th>
+              <th style="width: 120px;">Одометр</th>
+              <th style="width: 90px;">Пробег</th>
+              <th style="width: 90px;">ГСМ (л)</th>
+              <th style="width: 100px;">Сумма (₽)</th>
+              <th style="width: 95px;">Выезд</th>
+              <th style="width: 95px;">Возврат</th>
               <th>Заметка / Маршрут</th>
             </tr>
           </thead>
@@ -238,6 +282,34 @@
         </table>
       </div>
     </div>
+  </div>
+  
+  <div id="wbParamsModal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>Период путевого листа</h3>
+      <div class="field-group" style="margin-bottom:10px;">
+        <label>Начало периода</label>
+        <input type="date" id="wbDateStart">
+      </div>
+      <div class="field-group" style="margin-bottom:20px;">
+        <label>Конец периода</label>
+        <input type="date" id="wbDateEnd">
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="document.getElementById('wbParamsModal').classList.remove('open')">Отмена</button>
+        <button class="btn btn-primary" onclick="openWaybill()">Сформировать</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="wbOverlay">
+    <div class="wb-toolbar">
+      <button class="btn btn-primary" onclick="printWaybillDoc()">🖨 Печать</button>
+      <button class="btn btn-success" onclick="waybillPDF()">Скачать PDF</button>
+      <button class="btn" onclick="closeWaybill()">✕ Закрыть</button>
+      <span style="font-size:0.78rem;color:var(--text-muted)">Поля формы можно редактировать перед печатью</span>
+    </div>
+    <div class="wb-sheet" id="wbSheet"></div>
   </div>
 
   <div id="deleteModal" class="modal-overlay">
@@ -337,7 +409,9 @@
             if (data && data.drivers) {
               Store = data; 
               saveLocally();
+              Store.settings = Object.assign({}, DEFAULT_SETTINGS, Store.settings || {});
               refreshUI();
+              fillSettingsInputs();
               if (Object.keys(pendingWrites).length > 0) {
                 syncToCloud(); 
               } else {
@@ -392,13 +466,13 @@
     }, 400);
 
     function initDefaultDrivers() {
-      Store.drivers = [{ id: 1, name: "Иванов И.И.", car: "ГАЗель Next", plate: "А 001 АА", fuelPrice: 62.0 }];
+      Store.drivers = [{ id: 1, name: "Иванов И.И.", car: "ГАЗель Next", plate: "А 001 АА", fuelPrice: 62.0, license: "", licenseClass: "" }];
       Store.logs = {};
     }
 
     function addNewDriver() {
       const newId = (Store.drivers.length > 0 ? Math.max(...Store.drivers.map(d => d.id)) : 0) + 1;
-      Store.drivers.push({ id: newId, name: `Водитель #${newId}`, car: "Новое авто", plate: "", fuelPrice: 0 });
+      Store.drivers.push({ id: newId, name: `Водитель #${newId}`, car: "Новое авто", plate: "", fuelPrice: 0, license: "", licenseClass: "" });
       populateDriverSelect();
       UI.driverSelect.value = newId;
       handleDriverChange();
@@ -474,6 +548,9 @@
         UI.profile.car.value = drv.car;
         UI.profile.plate.value = drv.plate;
         UI.profile.price.value = drv.fuelPrice || '';
+        document.getElementById('driverTabNum').value = drv.tabNum || '';
+        document.getElementById('driverLicense').value = drv.license || '';
+        document.getElementById('driverLicenseClass').value = drv.licenseClass || '';
         UI.stats.chartTitle.textContent = `Динамика: ${drv.name}`;
       }
       renderTableGrid();
@@ -487,6 +564,9 @@
         drv.car = UI.profile.car.value.trim();
         drv.plate = UI.profile.plate.value.trim();
         drv.fuelPrice = parseFloat(UI.profile.price.value) || 0;
+        drv.tabNum = document.getElementById('driverTabNum').value.trim();
+        drv.license = document.getElementById('driverLicense').value.trim();
+        drv.licenseClass = document.getElementById('driverLicenseClass').value.trim();
         populateDriverSelect();
         UI.driverSelect.value = id;
         markDirty('drivers', Store.drivers);
@@ -495,6 +575,9 @@
     }
 
     Object.values(UI.profile).forEach(el => el.addEventListener('input', saveProfile));
+    document.getElementById('driverTabNum').addEventListener('input', saveProfile);
+    document.getElementById('driverLicense').addEventListener('input', saveProfile);
+    document.getElementById('driverLicenseClass').addEventListener('input', saveProfile);
 
     function renderTableGrid() {
       const dId = UI.driverSelect.value;
@@ -516,6 +599,8 @@
         <td id="del-prev"><span class="delta-empty">—</span></td>
         <td><input type="number" step="0.1" class="grid-input fuel-in" data-day="prev" placeholder="0.0" value="${pEntry.fuel||''}"></td>
         <td id="cost-prev"><span class="delta-empty">—</span></td>
+        <td><span class="delta-empty">—</span></td>
+        <td><span class="delta-empty">—</span></td>
         <td><input type="text" class="grid-input note-in" data-day="prev" placeholder="Входящий..." value="${escapeHtml(pEntry.note||'')}"></td>
       </tr>`;
 
@@ -532,6 +617,8 @@
           <td id="del-${dStr}"><span class="delta-empty">—</span></td>
           <td><input type="number" step="0.1" class="grid-input fuel-in" data-day="${dStr}" placeholder="0.0" value="${ent.fuel||''}"></td>
           <td id="cost-${dStr}" style="color:var(--money); font-weight:500;"><span class="delta-empty">—</span></td>
+          <td><input type="time" class="grid-input time-out-in" data-day="${dStr}" value="${ent.timeOut||''}"></td>
+          <td><input type="time" class="grid-input time-in-in" data-day="${dStr}" value="${ent.timeIn||''}"></td>
           <td><input type="text" class="grid-input note-in" data-day="${dStr}" placeholder="Маршрут..." value="${escapeHtml(ent.note||'')}"></td>
         </tr>`;
       }
@@ -550,6 +637,8 @@
           
           if(e.target.classList.contains('odo-in')) Store.logs[tKey][tDay].odo = e.target.value;
           if(e.target.classList.contains('fuel-in')) Store.logs[tKey][tDay].fuel = e.target.value;
+          if(e.target.classList.contains('time-out-in')) Store.logs[tKey][tDay].timeOut = e.target.value;
+          if(e.target.classList.contains('time-in-in')) Store.logs[tKey][tDay].timeIn = e.target.value;
           if(e.target.classList.contains('note-in')) Store.logs[tKey][tDay].note = e.target.value;
 
           markDirty(`logs/${tKey}/${tDay}`, Store.logs[tKey][tDay]);
@@ -778,7 +867,6 @@
     UI.chartBox.addEventListener('mouseleave', () => { UI.chartTooltip.style.display='none'; drawLineChart(cachedChartData, -1); });
     UI.chartBox.addEventListener('touchmove', e => { e.preventDefault(); handleChartInteraction(e.touches[0].clientX, e.touches[0].clientY); }, {passive: false});
 
-    // --- УНИВЕРСАЛЬНАЯ ЛЕНИВАЯ ЗАГРУЗКА БИБЛИОТЕК ЭКСПОНЕНТА ---
     function loadScript(url) {
       return new Promise((resolve, reject) => {
         if (document.querySelector(`script[src="${url}"]`)) return resolve();
@@ -788,151 +876,6 @@
         script.onerror = reject;
         document.head.appendChild(script);
       });
-    }
-
-    async function exportToExcel() {
-      setStatus("Загрузка Excel...", "saving");
-      try {
-        await loadScript("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
-        setStatus("● Онлайн", "online");
-      } catch(e) {
-        setStatus("Ошибка загрузки модуля", "error");
-        return;
-      }
-      const dId = UI.driverSelect.value;
-      const drv = Store.drivers.find(d => d.id == dId);
-      const [y, m] = UI.monthSelector.value.split('-').map(Number);
-      const days = new Date(y, m, 0).getDate();
-      const mData = Store.logs[`d${dId}_${UI.monthSelector.value}`] || {};
-      const price = parseFloat(UI.profile.price.value) || 0;
-      
-      const pInfo = getPrevMonthInfo(y, m);
-      const pData = Store.logs[`d${dId}_${pInfo.key}`] || {};
-      let pOdo = pData[pInfo.day]?.odo ? parseInt(pData[pInfo.day].odo,10) : null;
-
-      const aoa = [
-        [`Путевой лист за ${UI.monthSelector.value}`],
-        [`Водитель: ${drv?.name||''}`, `Авто: ${drv?.car||''}`, `Госномер: ${drv?.plate||''}`, `Цена ГСМ: ${price} ₽/л`], [],
-        ['Дата', 'День', 'Одометр', 'Пробег (+км)', 'Заправка (л)', 'Сумма (₽)', 'Заметка']
-      ];
-
-      aoa.push([pInfo.dateStr, pInfo.wd, pOdo||'', 'База', pData[pInfo.day]?.fuel||'', '', pData[pInfo.day]?.note||'']);
-
-      for (let i = 1; i <= days; i++) {
-        const ds = String(i).padStart(2,'0');
-        const e = mData[ds] || {};
-        const odo = e.odo ? parseInt(e.odo,10) : '';
-        const fuel = e.fuel ? parseFloat(e.fuel) : '';
-        let delta = '';
-        if(odo !== '' && !isNaN(odo)) { if(pOdo !== null) delta = odo - pOdo; pOdo = odo; }
-        const cost = fuel>0 && price>0 ? fuel*price : '';
-        aoa.push([`${ds}.${String(m).padStart(2,'0')}`, weekdaysRu[new Date(y,m-1,i).getDay()], odo, delta, fuel, cost, e.note||'']);
-      }
-      const ws = XLSX.utils.aoa_to_sheet(aoa);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Табель");
-      XLSX.writeFile(wb, `Putevoy_${drv?.name || 'driver'}_${UI.monthSelector.value}.xlsx`);
-    }
-
-    async function exportYearToExcel() {
-      setStatus("Загрузка модуля...", "saving");
-      try {
-        await loadScript("https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js");
-        setStatus("● Онлайн", "online");
-      } catch(e) {
-        setStatus("Ошибка загрузки модуля", "error");
-        return;
-      }
-      const dId = UI.driverSelect.value;
-      const drv = Store.drivers.find(d => d.id == dId);
-      const [y] = UI.monthSelector.value.split('-').map(Number);
-      const price = parseFloat(UI.profile.price.value) || 0;
-      const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-      const wb = XLSX.utils.book_new();
-
-      for (let m = 1; m <= 12; m++) {
-        const monthStr = String(m).padStart(2,'0');
-        const monthKey = `${y}-${monthStr}`;
-        const days = new Date(y, m, 0).getDate();
-        const mData = Store.logs[`d${dId}_${monthKey}`] || {};
-
-        const prevD = new Date(y, m - 1, 0);
-        const pKey = `${prevD.getFullYear()}-${String(prevD.getMonth()+1).padStart(2,'0')}`;
-        const pData = Store.logs[`d${dId}_${pKey}`] || {};
-        const pDay = String(prevD.getDate()).padStart(2,'0');
-        let pOdo = pData[pDay]?.odo ? parseInt(pData[pDay].odo, 10) : null;
-
-        const aoa = [
-          [`Путевой лист: ${escapeHtml(drv?.name||'')} — ${monthNames[m-1]} ${y}`],
-          [`Авто: ${escapeHtml(drv?.car||'')}`, `Госномер: ${escapeHtml(drv?.plate||'')}`, `Цена ГСМ: ${price} ₽/л`], [],
-          ['Дата', 'День', 'Одометр', 'Пробег (+км)', 'Заправка (л)', 'Сумма (₽)', 'Заметка']
-        ];
-
-        aoa.push([
-          `${pDay}.${String(prevD.getMonth()+1).padStart(2,'0')}`,
-          weekdaysRu[prevD.getDay()],
-          pOdo !== null ? pOdo : '',
-          'База',
-          pData[pDay]?.fuel || '',
-          '',
-          escapeHtml(pData[pDay]?.note || '')
-        ]);
-
-        let monthKm = 0, monthFuel = 0;
-        for (let i = 1; i <= days; i++) {
-          const ds = String(i).padStart(2,'0');
-          const e = mData[ds] || {};
-          const odo = e.odo ? parseInt(e.odo, 10) : '';
-          const fuel = e.fuel ? parseFloat(e.fuel) : '';
-          let delta = '';
-          if (odo !== '' && !isNaN(odo)) {
-            if (pOdo !== null && odo - pOdo >= 0) { delta = odo - pOdo; monthKm += delta; }
-            pOdo = odo;
-          }
-          const cost = fuel > 0 && price > 0 ? fuel * price : '';
-          if (fuel > 0) monthFuel += fuel;
-          aoa.push([
-            `${ds}.${monthStr}`, weekdaysRu[new Date(y, m-1, i).getDay()],
-            odo, delta, fuel, cost, escapeHtml(e.note || '')
-          ]);
-        }
-
-        aoa.push([]);
-        aoa.push(['ИТОГО:', '', '', `${monthKm} км`, `${monthFuel.toFixed(1)} л`, `${Math.round(monthFuel * price)} ₽`, '']);
-
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-        XLSX.utils.book_append_sheet(wb, ws, `${monthStr}.${y}`);
-      }
-
-      XLSX.writeFile(wb, `Godovoy_otchet_${escapeHtml(drv?.name||'driver').replace(/[<>:"/\\|?*]/g,'_')}_${y}.xlsx`);
-    }
-
-    async function exportToPDF() {
-      setStatus("Загрузка PDF...", "saving");
-      try {
-        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
-        setStatus("● Онлайн", "online");
-      } catch(e) {
-        setStatus("Ошибка загрузки модуля", "error");
-        return;
-      }
-
-      const clone = UI.printArea.cloneNode(true);
-      clone.querySelectorAll('input').forEach(inp => {
-        const span = document.createElement('span');
-        span.textContent = inp.value || '—';
-        span.style.cssText = 'display:inline-block; padding:2px 0; white-space:nowrap;';
-        inp.replaceWith(span);
-      });
-      clone.querySelectorAll('.actions-bar').forEach(el => el.remove());
-
-      clone.style.cssText = 'position:absolute; left:-10000px; top:0; width:1100px; background:#fff; color:#000;';
-      document.body.appendChild(clone);
-
-      html2pdf().set({ margin: 5, filename: `Otchet_${UI.monthSelector.value}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } })
-        .from(clone).save()
-        .then(() => clone.remove())
-        .catch(() => clone.remove());
     }
 
     UI.monthSelector.addEventListener('change', () => { renderTableGrid(); renderFleetSummary(); });
@@ -973,6 +916,327 @@
     if (/iphone|ipad|ipod/i.test(navigator.userAgent) && !navigator.standalone && !localStorage.getItem('iosHintShown')) {
       localStorage.setItem('iosHintShown', '1');
       setTimeout(() => alert('Чтобы установить приложение на iPhone/iPad:\n1. Нажмите «Поделиться» (квадрат со стрелкой)\n2. Прокрутите вниз → «На экран "Домой"»\n3. Нажмите «Добавить»'), 2000);
+    }
+
+
+    /* ==================== ПУТЕВОЙ ЛИСТ, ТИПОВАЯ ФОРМА № 3 ==================== */
+    const DEFAULT_SETTINGS = {
+      orgName: 'ООО «Гидравлика-сервис»', orgPhone: '(8332) 703-383',
+      orgInn: '4345295419', orgKpp: '434501001', orgOgrn: '1114345001473',
+      fuelMark: 'АИ-95', fuelNorm: 10.6,
+      mechanic: 'Вершинин Д.А.', pickupAddress: 'г. Киров, ул. Производственная, 48'
+    };
+    Store.settings = Object.assign({}, DEFAULT_SETTINGS, Store.settings || {});
+    const monthsGen = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+    function fillSettingsInputs() {
+      const map = { setOrgName:'orgName', setOrgPhone:'orgPhone', setOrgInn:'orgInn', setOrgKpp:'orgKpp',
+                    setOrgOgrn:'orgOgrn', setPickupAddress:'pickupAddress', setFuelMark:'fuelMark',
+                    setFuelNorm:'fuelNorm', setMechanic:'mechanic' };
+      Object.entries(map).forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = Store.settings[key] ?? '';
+      });
+    }
+    fillSettingsInputs();
+    Object.entries({ setOrgName:'orgName', setOrgPhone:'orgPhone', setOrgInn:'orgInn', setOrgKpp:'orgKpp',
+                     setOrgOgrn:'orgOgrn', setPickupAddress:'pickupAddress', setFuelMark:'fuelMark',
+                     setFuelNorm:'fuelNorm', setMechanic:'mechanic' }).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      el.addEventListener('input', () => {
+        Store.settings[key] = (key === 'fuelNorm') ? (parseFloat(el.value) || 0) : el.value;
+        markDirty('settings', Store.settings);
+        debouncedSync();
+      });
+    });
+
+    function toShortName(full) {
+      if (!full) return '';
+      const p = full.trim().split(/\s+/);
+      if (p.length === 1) return p[0];
+      return p[0] + ' ' + p[1].charAt(0).toUpperCase() + '.' + (p[2] ? ' ' + p[2].charAt(0).toUpperCase() + '.' : '');
+    }
+
+    function openWaybillModal() {
+      const modal = document.getElementById('wbParamsModal');
+      const startInput = document.getElementById('wbDateStart');
+      const endInput = document.getElementById('wbDateEnd');
+      const [y, m] = UI.monthSelector.value.split('-');
+      const d1 = new Date(y, m - 1, 1);
+      const d2 = new Date(y, m, 0);
+      startInput.value = `${d1.getFullYear()}-${String(d1.getMonth()+1).padStart(2,'0')}-${String(d1.getDate()).padStart(2,'0')}`;
+      endInput.value = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}-${String(d2.getDate()).padStart(2,'0')}`;
+      modal.classList.add('open');
+    }
+
+    function collectWaybillData(startDateStr, endDateStr) {
+      const dId = UI.driverSelect.value;
+      const startD = new Date(startDateStr);
+      const endD = new Date(endDateStr);
+      
+      let startOdo = null, endOdo = null, totalKm = 0, totalFuel = 0;
+      const trips = [];
+      let prevOdoOverall = null;
+      let ostVyezd = '';
+
+      let d = new Date(startD);
+      d.setDate(d.getDate() - 1);
+      
+      const pKey = `d${dId}_${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      const pDayStr = String(d.getDate()).padStart(2,'0');
+      const pEntry = Store.logs[pKey]?.[pDayStr] || {};
+      prevOdoOverall = (pEntry.odo !== undefined && pEntry.odo !== '') ? parseInt(pEntry.odo, 10) : null;
+      ostVyezd = (pEntry.ost !== undefined && pEntry.ost !== '') ? pEntry.ost : '';
+
+      let current = new Date(startD);
+      while(current <= endD) {
+        const y = current.getFullYear();
+        const m = String(current.getMonth()+1).padStart(2,'0');
+        const day = String(current.getDate()).padStart(2,'0');
+        const k = `d${dId}_${y}-${m}`;
+        
+        const e = Store.logs[k]?.[day] || {};
+        let delta = '';
+        if (e.odo !== undefined && e.odo !== '') {
+          const co = parseInt(e.odo, 10);
+          if (prevOdoOverall !== null && co - prevOdoOverall >= 0) { delta = co - prevOdoOverall; totalKm += delta; }
+          if (startOdo === null) startOdo = prevOdoOverall !== null ? prevOdoOverall : co;
+          endOdo = co; prevOdoOverall = co;
+        }
+        const f = parseFloat(e.fuel) || 0;
+        if (f > 0) totalFuel += f;
+        if ((e.odo !== undefined && e.odo !== '') || f > 0 || (e.note && e.note.trim()) || e.timeOut || e.timeIn) {
+          trips.push({ 
+            dayStr: `${day}.${m}.${String(y).slice(2)}`, 
+            delta, 
+            timeOut: e.timeOut || '', 
+            timeIn: e.timeIn || '', 
+            note: (e.note || '').trim() 
+          });
+        }
+        
+        current.setDate(current.getDate() + 1);
+      }
+      return { startOdo: startOdo ?? '', endOdo: endOdo ?? '', totalKm, totalFuel, trips, ostVyezd };
+    }
+
+    function openWaybill() {
+      document.getElementById('wbParamsModal').classList.remove('open');
+      document.body.classList.add('wb-print');
+      document.getElementById('wbSheet').innerHTML = buildWaybillHTML();
+      document.getElementById('wbOverlay').classList.add('open');
+      bindWaybillCalc();
+      document.getElementById('wbOverlay').scrollTop = 0;
+    }
+    function closeWaybill() {
+      document.getElementById('wbOverlay').classList.remove('open');
+      document.body.classList.remove('wb-print');
+    }
+    function printWaybillDoc() { window.print(); }
+    
+    function formatPeriodRus(startDateStr, endDateStr) {
+      if (!startDateStr || !endDateStr) return '';
+      const s = new Date(startDateStr);
+      const e = new Date(endDateStr);
+      const sd = String(s.getDate()).padStart(2, '0');
+      const ed = String(e.getDate()).padStart(2, '0');
+      if (s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth()) {
+        return `${sd} по ${ed} ${monthsGen[e.getMonth()]} ${e.getFullYear()}`;
+      }
+      return `${sd} ${monthsGen[s.getMonth()]} ${s.getFullYear()} по ${ed} ${monthsGen[e.getMonth()]} ${e.getFullYear()}`;
+    }
+
+    function buildWaybillHTML() {
+      const drv = Store.drivers.find(d => d.id == UI.driverSelect.value) || {};
+      const S = Store.settings;
+      const startDStr = document.getElementById('wbDateStart').value;
+      const endDStr = document.getElementById('wbDateEnd').value;
+
+      const D = collectWaybillData(startDStr, endDStr);
+      const shortName = toShortName(drv.name || '');
+      const mech = escapeHtml(S.mechanic);
+      const sig = '(подпись)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(расшифровка подписи)';
+      const inp = (id, val, style='') => `<input id="${id}" type="text" value="${escapeHtml(val ?? '')}" style="${style}">`;
+      const num = (id, val, style='text-align:center') => `<input id="${id}" type="number" step="any" value="${val ?? ''}" style="${style}">`;
+
+      let tripRows = '';
+      D.trips.forEach((t, i) => {
+        let tOutH = '', tOutM = '', tInH = '', tInM = '';
+        if (t.timeOut) { const p = t.timeOut.split(':'); tOutH = p[0]; tOutM = p[1]; }
+        if (t.timeIn) { const p = t.timeIn.split(':'); tInH = p[0]; tInM = p[1]; }
+
+        tripRows += `<tr>
+          <td class="wb-center">${i + 1}</td>
+          <td class="wb-center">${t.dayStr}</td>
+          <td>${escapeHtml(S.pickupAddress)}</td>
+          <td>${escapeHtml(t.note || '—')}</td>
+          <td class="wb-center"><input type="text" style="width:100%;min-width:14px;text-align:center;" value="${tOutH}"></td>
+          <td class="wb-center"><input type="text" style="width:100%;min-width:14px;text-align:center;" value="${tOutM}"></td>
+          <td class="wb-center"><input type="text" style="width:100%;min-width:14px;text-align:center;" value="${tInH}"></td>
+          <td class="wb-center"><input type="text" style="width:100%;min-width:14px;text-align:center;" value="${tInM}"></td>
+          <td class="wb-center">${t.delta !== '' ? t.delta : ''}</td>
+          <td></td></tr>`;
+      });
+      const MIN_ROWS = 14;
+      for (let i = D.trips.length; i < MIN_ROWS; i++) {
+        tripRows += `<tr><td class="wb-center">${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+      }
+      tripRows += `<tr><td colspan="8" class="wb-right wb-bold">Итого:</td><td class="wb-center wb-bold">${D.totalKm}</td><td></td></tr>`;
+
+      return `
+<div class="wb-right" style="font-size:8px">Подготовлено с использованием системы КонсультантПлюс</div>
+<table class="wb-nob"><tr>
+  <td style="width:30%;vertical-align:top">Место для штампа<br>организации</td>
+  <td style="width:38%"></td>
+  <td class="wb-right" style="width:32%;vertical-align:top">Типовая межотраслевая форма № 3<br><br>Утверждена постановлением Госкомстата России<br>от 28.11.97 № 78</td>
+</tr></table>
+
+<table class="wb-nob"><tr>
+  <td class="wb-center wb-bold" style="font-size:16px;letter-spacing:0.5px">ПУТЕВОЙ ЛИСТ<br>ЛЕГКОВОГО АВТОМОБИЛЯ</td>
+  <td style="width:150px;vertical-align:bottom">№ ${inp('wb-num','','width:70px')}<br><span style="font-size:9px">(серия)</span></td>
+</tr></table>
+
+<div class="wb-center" style="margin:2px 0">${formatPeriodRus(startDStr, endDStr)}&nbsp;г.</div>
+
+<table>
+<tr>
+  <td style="width:58%">Организация<br><b>${escapeHtml(S.orgName)}</b>${S.orgPhone ? ' Тел./факс: ' + escapeHtml(S.orgPhone) : ''} ИНН ${escapeHtml(S.orgInn)} КПП ${escapeHtml(S.orgKpp)} ОГРН ${escapeHtml(S.orgOgrn)}<br><span style="font-size:9px">(наименование, адрес, номер телефона)</span></td>
+  <td class="wb-right">Коды<br>Форма по ОКУД&nbsp;&nbsp;0345001<br>по ОКПО&nbsp;&nbsp;${inp('wb-okpo','','width:70px')}</td>
+</tr>
+<tr>
+  <td>Марка автомобиля&nbsp;&nbsp;<b>${escapeHtml(drv.car || '')}</b></td>
+  <td rowspan="2">Задание водителю<br>В распоряжение<br><b>${escapeHtml(S.orgName)}</b><br><span style="font-size:9px">(организация)</span><br><span style="font-size:9px">(организация)</span></td>
+</tr>
+<tr>
+  <td>Государственный номерной знак&nbsp;&nbsp;<b>${escapeHtml(drv.plate || '')}</b>&nbsp;&nbsp;&nbsp;Гаражный номер&nbsp;&nbsp;${inp('wb-garage','','width:50px')}</td>
+</tr>
+<tr>
+  <td>Водитель&nbsp;&nbsp;<b>${escapeHtml(drv.name || '')}</b>&nbsp;&nbsp;&nbsp;Табельный номер&nbsp;&nbsp;${inp('wb-tabnum', drv.tabNum || '', 'width:60px')}<br><span style="font-size:9px">(фамилия, имя, отчество)</span></td>
+  <td>Автомобиль технически исправен<br>Показания спидометра, км&nbsp;&nbsp;${num('wb-startOdo', D.startOdo)}</td>
+</tr>
+<tr>
+  <td>Удостоверение №&nbsp;&nbsp;${inp('wb-license', drv.license || '', 'width:110px')}&nbsp;&nbsp;&nbsp;Класс&nbsp;&nbsp;${inp('wb-licclass', drv.licenseClass || '', 'width:30px')}</td>
+  <td>Выезд разрешил<br>Механик&nbsp;&nbsp;__________&nbsp;&nbsp;${mech}<br><span style="font-size:9px">${sig}</span></td>
+</tr>
+<tr>
+  <td>Лицензионная карточка&nbsp;&nbsp;стандартная, ограниченная<br><span style="font-size:9px">(ненужное зачеркнуть)</span></td>
+  <td>Автомобиль в технически исправном состоянии принял<br>Водитель&nbsp;&nbsp;__________&nbsp;&nbsp;${escapeHtml(shortName)}<br><span style="font-size:9px">${sig}</span></td>
+</tr>
+<tr>
+  <td>Регистрационный №&nbsp;&nbsp;${inp('wb-regnum','','width:80px')}&nbsp;&nbsp;Серия&nbsp;&nbsp;${inp('wb-seria','','width:40px')}&nbsp;&nbsp;№&nbsp;&nbsp;${inp('wb-regnn','','width:60px')}</td>
+  <td>Горючее&nbsp;&nbsp;Марка&nbsp;&nbsp;${inp('wb-fuelmark', S.fuelMark, 'width:60px')}&nbsp;&nbsp;код&nbsp;&nbsp;${inp('wb-fuelcode','','width:40px')}</td>
+</tr>
+<tr>
+  <td rowspan="2">Адрес подачи<br><b>${escapeHtml(S.pickupAddress)}</b></td>
+  <td>Время выезда из гаража, ч. мин.&nbsp;&nbsp;<span class="wb-chip">круглосуточно</span><br>Диспетчер-нарядчик&nbsp;&nbsp;__________&nbsp;&nbsp;${mech}<br><span style="font-size:9px">${sig}</span></td>
+</tr>
+<tr>
+  <td>Время возвращения в гараж, ч. мин.&nbsp;&nbsp;<span class="wb-chip">круглосуточно</span><br>Диспетчер-нарядчик&nbsp;&nbsp;__________&nbsp;&nbsp;${mech}<br><span style="font-size:9px">${sig}</span></td>
+</tr>
+<tr>
+  <td rowspan="2">Опоздания, ожидания, простои в пути, заезды в гараж<br>и прочие отметки<br><br><br><br></td>
+  <td>Движение горючего
+    <table style="margin-top:2px">
+      <tr><td colspan="2" class="wb-center" style="font-size:9px">количество, л</td></tr>
+      <tr><td style="width:52%">Выдано:&nbsp;&nbsp;${num('wb-vydano', +D.totalFuel.toFixed(1))}&nbsp;л</td><td>по заправочному листу №&nbsp;&nbsp;${inp('wb-zaplist','','width:55px')}</td></tr>
+      <tr><td colspan="2">Остаток: при выезде&nbsp;&nbsp;${num('wb-ostVyezd', D.ostVyezd, 'width:64px')}&nbsp;&nbsp;&nbsp;при возвращении&nbsp;&nbsp;${num('wb-ostVozvrat','', 'width:64px')}</td></tr>
+    </table>
+  </td>
+</tr>
+<tr>
+  <td>Расход: по норме&nbsp;&nbsp;${num('wb-norm', S.fuelNorm, 'width:48px')}&nbsp;л/100 км&nbsp;&nbsp;за период&nbsp;&nbsp;<b><span id="wb-rashNorm">—</span>&nbsp;л</b><br>фактический&nbsp;&nbsp;${num('wb-fakt','', 'width:70px')}&nbsp;л<br>Экономия&nbsp;&nbsp;<span id="wb-ekonom">—</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Перерасход&nbsp;&nbsp;<span id="wb-pererash">—</span></td>
+</tr>
+<tr>
+  <td>Автомобиль сдал водитель&nbsp;&nbsp;__________&nbsp;&nbsp;${escapeHtml(shortName)}<br><span style="font-size:9px">${sig}</span><br>М.П.</td>
+  <td>Автомобиль принял. Показания спидометра при возвращении<br>в гараж, км&nbsp;&nbsp;${num('wb-endOdo', D.endOdo)}<br>Пробег&nbsp;&nbsp;<b><span id="wb-probeg">${D.totalKm || ''}</span>&nbsp;км</b><br>Механик&nbsp;&nbsp;__________&nbsp;&nbsp;${mech}<br><span style="font-size:9px">${sig}</span></td>
+</tr>
+</table>
+
+<div class="wb-page-break"></div>
+<div class="wb-right" style="font-size:8px">Подготовлено с использованием системы КонсультантПлюс</div>
+<div class="wb-center wb-bold" style="margin:4px 0">Оборотная сторона формы № 3</div>
+<table>
+<thead>
+<tr>
+  <th rowspan="2" style="width:34px">Номер по порядку</th>
+  <th rowspan="2" style="width:52px">Дата</th>
+  <th colspan="2">Место</th>
+  <th colspan="4" style="width:104px">Время</th>
+  <th rowspan="2" style="width:52px">Пройдено, км</th>
+  <th rowspan="2">Подпись лица, пользовавшегося автомобилем</th>
+</tr>
+<tr>
+  <th>отправления</th><th>назначения</th>
+  <th>выезда, ч.</th><th>мин.</th><th>возвращения, ч.</th><th>мин.</th>
+</tr>
+</thead>
+<tbody>${tripRows}</tbody>
+</table>
+<table style="margin-top:0"><tr>
+  <td style="width:50%">Результат работы автомобиля за смену:<br>всего в наряде, ч.&nbsp;&nbsp;__________<br>пройдено, км&nbsp;&nbsp;<b>${D.totalKm}</b></td>
+  <td>Расчет заработной платы:<br>за километраж, руб. коп.&nbsp;&nbsp;__________<br>за часы, руб. коп.&nbsp;&nbsp;__________<br>Итого, руб. коп.&nbsp;&nbsp;__________<br><br>Расчет произвел&nbsp;&nbsp;__________&nbsp;&nbsp;${escapeHtml(shortName)}<br><span style="font-size:9px">${sig}</span></td>
+</tr></table>`;
+    }
+
+    function bindWaybillCalc() {
+      const $ = id => document.getElementById(id);
+      const recalc = () => {
+        const start = parseFloat($('wb-startOdo').value) || 0;
+        const end = parseFloat($('wb-endOdo').value) || 0;
+        const probeg = (end > start) ? end - start : 0;
+        $('wb-probeg').textContent = probeg;
+        const norm = parseFloat($('wb-norm').value) || 0;
+        const vydano = parseFloat($('wb-vydano').value) || 0;
+        const ostV = parseFloat($('wb-ostVyezd').value) || 0;
+        const rash = Math.round(probeg * norm / 100 * 100) / 100;
+        $('wb-rashNorm').textContent = rash.toFixed(2);
+        $('wb-ostVozvrat').value = Math.max(0, Math.round((ostV + vydano - rash) * 10) / 10);
+        const diff = Math.round((vydano - rash) * 100) / 100;
+        $('wb-ekonom').textContent = diff < 0 ? Math.abs(diff).toFixed(2) : '—';
+        $('wb-pererash').textContent = diff > 0 ? diff.toFixed(2) : '—';
+      };
+      ['wb-startOdo','wb-endOdo','wb-norm','wb-vydano','wb-ostVyezd'].forEach(id => {
+        const el = $(id);
+        if (el) el.addEventListener('input', recalc);
+      });
+      recalc();
+    }
+
+    async function waybillPDF() {
+      setStatus("Загрузка PDF...", "saving");
+      try {
+        await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js");
+        setStatus("● Онлайн", "online");
+      } catch (e) {
+        setStatus("Ошибка загрузки модуля", "error");
+        return;
+      }
+      const origSheet = document.getElementById('wbSheet');
+      const clone = origSheet.cloneNode(true);
+      
+      const origInputs = origSheet.querySelectorAll('input');
+      clone.querySelectorAll('input').forEach((inpEl, i) => {
+        const s = document.createElement('span');
+        s.textContent = origInputs[i].value || '—';
+        s.style.cssText = 'display:inline-block; min-width:28px; border-bottom:1px dotted #000; text-align:center; padding:0 2px;';
+        inpEl.replaceWith(s);
+      });
+      
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'width: 800px; padding: 10px; background: #fff; color: #000; font-family: "Times New Roman", Times, serif; font-size: 11px;';
+      wrapper.appendChild(clone);
+      
+      const drv = Store.drivers.find(d => d.id == UI.driverSelect.value) || {};
+      const fname = `Putevoy_list_forma3_${UI.monthSelector.value}_${(drv.name || 'voditel').replace(/\s+/g, '_')}.pdf`;
+      
+      html2pdf().set({ 
+        margin: 8, 
+        filename: fname, 
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 }, 
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+      })
+      .from(wrapper).save();
     }
 
     loadData();
